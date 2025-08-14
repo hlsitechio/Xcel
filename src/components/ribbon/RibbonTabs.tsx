@@ -19,6 +19,7 @@ interface RibbonTabsProps {
   onAddRow: () => void;
   onAddColumn: () => void;
   selectedCell: { row: number; col: number } | null;
+  onImageUpload?: (imageData: string[][], imageInfo: { width: number; height: number; cellsX: number; cellsY: number }) => void;
 }
 
 export const RibbonTabs = ({
@@ -29,6 +30,7 @@ export const RibbonTabs = ({
   onAddRow,
   onAddColumn,
   selectedCell,
+  onImageUpload,
 }: RibbonTabsProps) => {
   const [activeTab, setActiveTab] = useState("home");
 
@@ -108,7 +110,7 @@ export const RibbonTabs = ({
         </TabsContent>
 
         <TabsContent value="insert" className="m-0 p-4">
-          <InsertTab />
+          <InsertTab onImageUpload={onImageUpload} />
         </TabsContent>
 
         <TabsContent value="page-layout" className="m-0 p-4">

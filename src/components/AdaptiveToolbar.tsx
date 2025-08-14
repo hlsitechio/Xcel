@@ -56,6 +56,7 @@ export const AdaptiveToolbar = ({
           onAddRow={onAddRow}
           onAddColumn={onAddColumn}
           selectedCell={selectedCell}
+          onImageUpload={onImageUpload}
         />
       </div>
 
@@ -84,6 +85,7 @@ export const AdaptiveToolbar = ({
                       onAddRow={onAddRow}
                       onAddColumn={onAddColumn}
                       selectedCell={selectedCell}
+                      onImageUpload={onImageUpload}
                     />
                     <div className="mt-4">
                       <ImageUpload onImageUpload={onImageUpload} />

@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ChartControls } from "@/components/controls/charts/ChartControls";
+import { ImageInsertControl } from "@/components/controls/image/ImageInsertControl";
 import { 
   Table,
-  Image,
   Link,
   Calendar,
   Clock,
@@ -11,7 +11,11 @@ import {
   MessageCircle
 } from "lucide-react";
 
-export const InsertTab = () => {
+interface InsertTabProps {
+  onImageUpload?: (imageData: string[][], imageInfo: { width: number; height: number; cellsX: number; cellsY: number }) => void;
+}
+
+export const InsertTab = ({ onImageUpload }: InsertTabProps) => {
   return (
     <div className="flex items-center gap-6">
       {/* Tables Group */}
@@ -31,14 +35,16 @@ export const InsertTab = () => {
 
       <Separator orientation="vertical" className="h-16" />
 
-      {/* Illustrations Group */}
       <div className="flex flex-col items-center gap-2">
         <div className="text-xs text-muted-foreground font-medium">Illustrations</div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="flex-col h-12 w-12 p-1">
-            <Image className="h-4 w-4" />
-            <span className="text-xs">Image</span>
-          </Button>
+          {onImageUpload ? (
+            <ImageInsertControl onImageUpload={onImageUpload} />
+          ) : (
+            <Button variant="ghost" size="sm" className="flex-col h-12 w-12 p-1">
+              <span className="text-xs">Image</span>
+            </Button>
+          )}
         </div>
       </div>
 
