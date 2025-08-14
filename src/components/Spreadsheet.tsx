@@ -13,6 +13,7 @@ const INITIAL_ROWS = 100;
 const INITIAL_COLS = 26;
 
 export const Spreadsheet = () => {
+  // Initialize default data structure
   const initialData = Array(INITIAL_ROWS)
     .fill(null)
     .map(() => Array(INITIAL_COLS).fill(""));
