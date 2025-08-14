@@ -73,8 +73,18 @@ export const ResizableSpreadsheetCell = ({
         setEditValue("");
       } else if (e.key === "Enter" || e.key === "F2") {
         setIsEditing(true);
+      } else if (isPrintableCharacter(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Start editing with the typed character
+        setEditValue(e.key);
+        setIsEditing(true);
+        e.preventDefault(); // Prevent the default behavior
       }
     }
+  };
+
+  // Helper function to check if a key is a printable character
+  const isPrintableCharacter = (key: string) => {
+    return key.length === 1 && /^[\x20-\x7E]$/.test(key);
   };
 
   const handleSave = () => {
