@@ -79,5 +79,7 @@ export function useUndoRedo<T>(initialState: T, maxHistorySize: number = 50) {
     canUndo,
     canRedo,
     reset,
+    historySize: state.history.length,
+    currentPosition: state.currentIndex + 1,
   };
 }

@@ -18,15 +18,17 @@ export const Spreadsheet = () => {
     .fill(null)
     .map(() => Array(INITIAL_COLS).fill(""));
   
-  // Undo/Redo state management
+  // Undo/Redo state management with 50 levels of history
   const {
     currentState: data,
     pushState: pushDataState,
     undo,
     redo,
     canUndo,
-    canRedo
-  } = useUndoRedo(initialData);
+    canRedo,
+    historySize,
+    currentPosition,
+  } = useUndoRedo(initialData, 50);
 
   const [imageData, setImageData] = useState<string[][]>([]);
   const [clipboardData, setClipboardData] = useState<{
@@ -92,7 +94,16 @@ export const Spreadsheet = () => {
     
     // Push to undo history
     pushDataState(newData);
-  }, [data, imageData, toast, pushDataState]);
+    
+    // Show warning when approaching history limit
+    if (historySize >= 45) {
+      toast({
+        title: "History Nearly Full",
+        description: `${50 - historySize} actions remaining in undo history`,
+        variant: "default",
+      });
+    }
+  }, [data, imageData, toast, pushDataState, historySize]);
 
   const handleCellSelect = useCallback((row: number, col: number, event?: React.MouseEvent) => {
     if (row >= 0 && col >= 0) {
