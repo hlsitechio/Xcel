@@ -185,8 +185,11 @@ export const ResizableSpreadsheetCell = ({
           type="text"
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            handleKeyDown(e);
+          }}
           onBlur={handleSave}
-          onKeyDown={handleKeyDown}
           className="w-full h-full px-2 text-sm bg-transparent outline-none"
           style={{ width: '100%', height: '100%' }}
         />

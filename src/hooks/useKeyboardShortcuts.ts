@@ -119,6 +119,12 @@ export const useKeyboardShortcuts = (context: Partial<SpreadsheetContext>) => {
   };
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Don't handle shortcuts when user is typing in an input field
+    const target = event.target as HTMLElement;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+      return;
+    }
+    
     keyboardManager.handleKeyDown(event);
   }, []);
 
