@@ -301,6 +301,51 @@ export const Spreadsheet = () => {
     });
   }, [toast]);
 
+  const handleDeleteSelectedCells = useCallback(() => {
+    if (selectedRanges.length === 0) return;
+
+    setData(prevData => {
+      const newData = prevData.map(row => [...row]);
+      
+      selectedRanges.forEach(range => {
+        for (let row = range.startRow; row <= range.endRow; row++) {
+          for (let col = range.startCol; col <= range.endCol; col++) {
+            if (newData[row] && newData[row][col] !== undefined) {
+              newData[row][col] = "";
+            }
+          }
+        }
+      });
+      
+      return newData;
+    });
+
+    setImageData(prevImageData => {
+      const newImageData = [...prevImageData];
+      
+      selectedRanges.forEach(range => {
+        for (let row = range.startRow; row <= range.endRow; row++) {
+          for (let col = range.startCol; col <= range.endCol; col++) {
+            if (newImageData[row] && newImageData[row][col] !== undefined) {
+              newImageData[row][col] = "";
+            }
+          }
+        }
+      });
+      
+      return newImageData;
+    });
+
+    const totalCells = selectedRanges.reduce((sum, range) => 
+      sum + (range.endRow - range.startRow + 1) * (range.endCol - range.startCol + 1), 0
+    );
+
+    toast({
+      title: "Cells Cleared",
+      description: `${totalCells} cell${totalCells > 1 ? 's' : ''} cleared successfully`,
+    });
+  }, [selectedRanges, toast]);
+
   return (
     <ResponsiveLayout>
       {/* File Menu - Always visible */}
@@ -340,6 +385,7 @@ export const Spreadsheet = () => {
         onLoadMoreRows={handleLoadMoreRows}
         onLoadMoreCols={handleLoadMoreCols}
         imageData={imageData}
+        onDeleteSelectedCells={handleDeleteSelectedCells}
       />
     </ResponsiveLayout>
   );

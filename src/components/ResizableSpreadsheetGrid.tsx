@@ -19,6 +19,7 @@ interface ResizableSpreadsheetGridProps {
   onLoadMoreRows: () => void;
   onLoadMoreCols: () => void;
   imageData?: string[][];
+  onDeleteSelectedCells: () => void;
 }
 
 export const ResizableSpreadsheetGrid = ({
@@ -34,6 +35,7 @@ export const ResizableSpreadsheetGrid = ({
   onLoadMoreRows,
   onLoadMoreCols,
   imageData = [],
+  onDeleteSelectedCells,
 }: ResizableSpreadsheetGridProps) => {
   // Base state for dimensions (without zoom applied)
   const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
@@ -214,10 +216,30 @@ export const ResizableSpreadsheetGrid = ({
     [rowHeights, zoom]
   );
 
+  // Handle keyboard events for multi-cell deletion
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedRanges.length > 0) {
+        // Prevent default behavior and stop propagation
+        e.preventDefault();
+        e.stopPropagation();
+        onDeleteSelectedCells();
+      }
+    };
+
+    // Add event listener to document to capture all keyboard events
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedRanges, onDeleteSelectedCells]);
+
   return (
     <div 
       ref={gridRef}
-      className="flex-1 overflow-auto bg-background relative"
+      className="flex-1 overflow-auto bg-background relative focus:outline-none"
+      tabIndex={0}
     >
       <div 
         className="relative"
