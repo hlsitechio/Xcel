@@ -16,6 +16,7 @@ interface ResizableSpreadsheetCellProps {
   onCellMouseOver?: (row: number, col: number) => void;
   onColumnResize: (colIndex: number, newWidth: number) => void;
   onRowResize: (rowIndex: number, newHeight: number) => void;
+  onEditingValueChange?: (value: string) => void;
 }
 
 export const ResizableSpreadsheetCell = ({
@@ -33,12 +34,21 @@ export const ResizableSpreadsheetCell = ({
   onCellMouseOver,
   onColumnResize,
   onRowResize,
+  onEditingValueChange,
 }: ResizableSpreadsheetCellProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const [isResizing, setIsResizing] = useState<'column' | 'row' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cellRef = useRef<HTMLDivElement>(null);
+
+  // Update the editing value in real-time to sync with formula bar
+  const updateEditingValue = (newValue: string) => {
+    setEditValue(newValue);
+    if (onEditingValueChange && isSelected && isEditing) {
+      onEditingValueChange(newValue);
+    }
+  };
 
   useEffect(() => {
     setEditValue(value);
@@ -48,8 +58,21 @@ export const ResizableSpreadsheetCell = ({
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
+      // Notify that editing started
+      if (onEditingValueChange && isSelected) {
+        onEditingValueChange(editValue);
+      }
     }
-  }, [isEditing]);
+  }, [isEditing, isSelected, editValue, onEditingValueChange]);
+
+  // Clear editing value when cell is no longer selected or editing stops
+  useEffect(() => {
+    if (!isSelected || !isEditing) {
+      if (onEditingValueChange) {
+        onEditingValueChange("");
+      }
+    }
+  }, [isSelected, isEditing, onEditingValueChange]);
 
   const handleDoubleClick = () => {
     if (!isHeader) {
@@ -75,7 +98,7 @@ export const ResizableSpreadsheetCell = ({
         setIsEditing(true);
       } else if (isPrintableCharacter(e.key) && !e.ctrlKey && !e.altKey && !e.metaKey) {
         // Start editing with the typed character
-        setEditValue(e.key);
+        updateEditingValue(e.key);
         setIsEditing(true);
         e.preventDefault(); // Prevent the default behavior
       }
@@ -194,7 +217,7 @@ export const ResizableSpreadsheetCell = ({
           ref={inputRef}
           type="text"
           value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
+          onChange={(e) => updateEditingValue(e.target.value)}
           onKeyDown={(e) => {
             e.stopPropagation();
             handleKeyDown(e);

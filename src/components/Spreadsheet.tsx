@@ -39,6 +39,7 @@ export const Spreadsheet = () => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<{ row: number; col: number } | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [currentEditingValue, setCurrentEditingValue] = useState<string>("");
   const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -220,8 +221,9 @@ export const Spreadsheet = () => {
     if (!selectedCell || selectedCell.row < 0 || selectedCell.col < 0) {
       return "";
     }
-    return data[selectedCell.row]?.[selectedCell.col] || "";
-  }, [selectedCell, data]);
+    // Return the current editing value if available, otherwise return the stored data
+    return currentEditingValue || data[selectedCell.row]?.[selectedCell.col] || "";
+  }, [selectedCell, data, currentEditingValue]);
 
   const getSelectedCellsInfo = useCallback(() => {
     if (selectedRanges.length === 0) return "";
@@ -530,6 +532,7 @@ export const Spreadsheet = () => {
         onLoadMoreCols={handleLoadMoreCols}
         imageData={imageData}
         onDeleteSelectedCells={handleDeleteSelectedCells}
+        onEditingValueChange={setCurrentEditingValue}
       />
     </ResponsiveLayout>
   );

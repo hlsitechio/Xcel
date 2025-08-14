@@ -20,6 +20,7 @@ interface ResizableSpreadsheetGridProps {
   onLoadMoreCols: () => void;
   imageData?: string[][];
   onDeleteSelectedCells: () => void;
+  onEditingValueChange?: (value: string) => void;
 }
 
 export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpreadsheetGridProps>(({
@@ -36,6 +37,7 @@ export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpre
   onLoadMoreCols,
   imageData = [],
   onDeleteSelectedCells,
+  onEditingValueChange,
 }, ref) => {
   // Base state for dimensions (without zoom applied)
   const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
@@ -340,6 +342,7 @@ export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpre
                     onCellMouseOver={onCellMouseOver}
                     onColumnResize={handleColumnResize}
                     onRowResize={handleRowResize}
+                    onEditingValueChange={onEditingValueChange}
                   />
                 );
               })}
