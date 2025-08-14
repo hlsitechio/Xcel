@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Save, Share2 } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const FileMenuHeader = () => {
   return (
@@ -12,6 +13,7 @@ export const FileMenuHeader = () => {
         <Share2 className="h-4 w-4 mr-2" />
         Share
       </Button>
+      <ThemeToggle />
     </div>
   );
 };
