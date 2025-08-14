@@ -116,8 +116,8 @@ export const ResizableSpreadsheetCell = ({
   const handleClick = (e: React.MouseEvent) => {
     if (!isResizing) {
       onCellSelect(rowIndex, colIndex, e);
-      // Focus the cell for keyboard events
-      if (cellRef.current) {
+      // Focus the cell for keyboard events only if not editing
+      if (cellRef.current && !isEditing) {
         cellRef.current.focus();
       }
     }

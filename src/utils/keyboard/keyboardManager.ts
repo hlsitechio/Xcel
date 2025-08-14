@@ -35,8 +35,11 @@ export class KeyboardManager {
     // Always allow copy/paste/cut shortcuts
     const alwaysAllowed = ['c', 'v', 'x', 'z', 'y'];
     const isAlwaysAllowed = alwaysAllowed.includes(event.key.toLowerCase()) && (event.ctrlKey || event.metaKey);
+    // Always allow arrow key navigation
+    const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    const isNavigationKey = navigationKeys.includes(event.key);
     
-    if (isInput && !allowedInInput.includes(event.key) && !isAlwaysAllowed) {
+    if (isInput && !allowedInInput.includes(event.key) && !isAlwaysAllowed && !isNavigationKey) {
       return false;
     }
 

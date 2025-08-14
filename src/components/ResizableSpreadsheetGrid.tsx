@@ -242,6 +242,10 @@ export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpre
       ref={ref}
       className="flex-1 overflow-auto bg-background relative focus:outline-none"
       tabIndex={0}
+      onKeyDown={(e) => {
+        // Let the keyboard manager handle navigation
+        e.stopPropagation();
+      }}
     >
       <div 
         className="relative"
