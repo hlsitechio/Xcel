@@ -36,7 +36,7 @@ export class KeyboardManager {
     const alwaysAllowed = ['c', 'v', 'x', 'z', 'y'];
     const isAlwaysAllowed = alwaysAllowed.includes(event.key.toLowerCase()) && (event.ctrlKey || event.metaKey);
     // Always allow arrow key navigation and selection keys
-    const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' '];
+    const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' ', 'Delete', 'Backspace'];
     const isNavigationKey = navigationKeys.includes(event.key);
     // Special handling for space key with modifiers (Ctrl+Space, Shift+Space)
     const isSpaceWithModifier = event.key === ' ' && (event.ctrlKey || event.shiftKey);
