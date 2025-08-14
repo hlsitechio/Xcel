@@ -28,6 +28,12 @@ export const Spreadsheet = () => {
   } = useUndoRedo(initialData);
 
   const [imageData, setImageData] = useState<string[][]>([]);
+  const [clipboardData, setClipboardData] = useState<{
+    values: string[][];
+    images: string[][];
+    type: 'copy' | 'cut';
+    sourceRange: { startRow: number; startCol: number; endRow: number; endCol: number } | null;
+  } | null>(null);
   
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const [selectedRanges, setSelectedRanges] = useState<Array<{
@@ -473,7 +479,130 @@ export const Spreadsheet = () => {
     }]);
   }, [data]);
 
-  // Initialize keyboard shortcuts with undo/redo
+  // Copy functionality
+  const handleCopy = useCallback(() => {
+    if (selectedRanges.length === 0 && selectedCell) {
+      // Copy single cell
+      const cellData = [[data[selectedCell.row]?.[selectedCell.col] || ""]];
+      const cellImage = [[imageData[selectedCell.row]?.[selectedCell.col] || ""]];
+      setClipboardData({
+        values: cellData,
+        images: cellImage,
+        type: 'copy',
+        sourceRange: {
+          startRow: selectedCell.row,
+          startCol: selectedCell.col,
+          endRow: selectedCell.row,
+          endCol: selectedCell.col
+        }
+      });
+      toast({
+        title: "Copied",
+        description: "Cell copied to clipboard",
+      });
+    } else if (selectedRanges.length > 0) {
+      // Copy selected range
+      const range = selectedRanges[0];
+      const copiedValues: string[][] = [];
+      const copiedImages: string[][] = [];
+      
+      for (let row = range.startRow; row <= range.endRow; row++) {
+        const rowValues: string[] = [];
+        const rowImages: string[] = [];
+        for (let col = range.startCol; col <= range.endCol; col++) {
+          rowValues.push(data[row]?.[col] || "");
+          rowImages.push(imageData[row]?.[col] || "");
+        }
+        copiedValues.push(rowValues);
+        copiedImages.push(rowImages);
+      }
+      
+      setClipboardData({
+        values: copiedValues,
+        images: copiedImages,
+        type: 'copy',
+        sourceRange: range
+      });
+      
+      toast({
+        title: "Copied",
+        description: `${copiedValues.length}x${copiedValues[0]?.length || 0} range copied to clipboard`,
+      });
+    }
+  }, [selectedCell, selectedRanges, data, imageData, toast]);
+
+  // Cut functionality
+  const handleCut = useCallback(() => {
+    handleCopy(); // First copy the data
+    if (clipboardData) {
+      setClipboardData(prev => prev ? { ...prev, type: 'cut' } : null);
+    }
+    // Clear the cut cells
+    handleDeleteSelectedCells();
+    toast({
+      title: "Cut",
+      description: "Cells cut to clipboard",
+    });
+  }, [handleCopy, clipboardData, handleDeleteSelectedCells, toast]);
+
+  // Paste functionality
+  const handlePaste = useCallback(() => {
+    if (!clipboardData || !selectedCell) {
+      toast({
+        title: "Nothing to Paste",
+        description: "No data in clipboard or no cell selected",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const startRow = selectedCell.row;
+    const startCol = selectedCell.col;
+    
+    // Create new data arrays
+    const newData = [...data];
+    const newImageData = [...imageData];
+    
+    // Ensure arrays are large enough
+    const requiredRows = startRow + clipboardData.values.length;
+    const requiredCols = startCol + (clipboardData.values[0]?.length || 0);
+    
+    // Extend data arrays if needed
+    while (newData.length < requiredRows) {
+      newData.push(Array(INITIAL_COLS).fill(""));
+    }
+    while (newImageData.length < requiredRows) {
+      newImageData.push(Array(INITIAL_COLS).fill(""));
+    }
+    
+    // Paste the data
+    clipboardData.values.forEach((row, rowOffset) => {
+      row.forEach((value, colOffset) => {
+        const targetRow = startRow + rowOffset;
+        const targetCol = startCol + colOffset;
+        
+        if (targetRow < newData.length && targetCol < newData[targetRow].length) {
+          newData[targetRow][targetCol] = value;
+          newImageData[targetRow][targetCol] = clipboardData.images[rowOffset]?.[colOffset] || "";
+        }
+      });
+    });
+    
+    pushDataState(newData);
+    setImageData(newImageData);
+    
+    toast({
+      title: "Pasted",
+      description: `${clipboardData.values.length}x${clipboardData.values[0]?.length || 0} range pasted`,
+    });
+    
+    // Clear clipboard if it was cut
+    if (clipboardData.type === 'cut') {
+      setClipboardData(null);
+    }
+  }, [clipboardData, selectedCell, data, imageData, toast, pushDataState]);
+
+  // Initialize keyboard shortcuts with all functionality
   useKeyboardShortcuts({
     selectedCell,
     selectedRanges,
@@ -488,6 +617,9 @@ export const Spreadsheet = () => {
     onSelectColumn: handleSelectColumn,
     onUndo: undo,
     onRedo: redo,
+    onCopy: handleCopy,
+    onCut: handleCut,
+    onPaste: handlePaste,
     gridRef
   });
 

@@ -32,7 +32,11 @@ export class KeyboardManager {
     
     // Allow some shortcuts even in input fields
     const allowedInInput = ['Escape', 'Enter', 'Tab', 'F2'];
-    if (isInput && !allowedInInput.includes(event.key)) {
+    // Always allow copy/paste/cut shortcuts
+    const alwaysAllowed = ['c', 'v', 'x', 'z', 'y'];
+    const isAlwaysAllowed = alwaysAllowed.includes(event.key.toLowerCase()) && (event.ctrlKey || event.metaKey);
+    
+    if (isInput && !allowedInInput.includes(event.key) && !isAlwaysAllowed) {
       return false;
     }
 
