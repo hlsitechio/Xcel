@@ -332,47 +332,65 @@ export const Spreadsheet = () => {
   }, [data, pushDataState, toast]);
 
   const handleDeleteSelectedCells = useCallback(() => {
-    if (selectedRanges.length === 0) return;
+    // Handle case when no selection exists
+    if (selectedRanges.length === 0 && !selectedCell) return;
 
     const newData = data.map(row => [...row]);
+    let cellsCleared = 0;
     
-    selectedRanges.forEach(range => {
-      for (let row = range.startRow; row <= range.endRow; row++) {
-        for (let col = range.startCol; col <= range.endCol; col++) {
-          if (newData[row] && newData[row][col] !== undefined) {
-            newData[row][col] = "";
+    // Handle selected ranges (multiple cells)
+    if (selectedRanges.length > 0) {
+      selectedRanges.forEach(range => {
+        for (let row = range.startRow; row <= range.endRow; row++) {
+          for (let col = range.startCol; col <= range.endCol; col++) {
+            if (newData[row] && newData[row][col] !== undefined) {
+              newData[row][col] = "";
+              cellsCleared++;
+            }
           }
         }
+      });
+    } 
+    // Handle single selected cell
+    else if (selectedCell) {
+      if (newData[selectedCell.row] && newData[selectedCell.row][selectedCell.col] !== undefined) {
+        newData[selectedCell.row][selectedCell.col] = "";
+        cellsCleared = 1;
       }
-    });
+    }
     
     pushDataState(newData);
 
     setImageData(prevImageData => {
       const newImageData = [...prevImageData];
       
-      selectedRanges.forEach(range => {
-        for (let row = range.startRow; row <= range.endRow; row++) {
-          for (let col = range.startCol; col <= range.endCol; col++) {
-            if (newImageData[row] && newImageData[row][col] !== undefined) {
-              newImageData[row][col] = "";
+      // Handle selected ranges (multiple cells)
+      if (selectedRanges.length > 0) {
+        selectedRanges.forEach(range => {
+          for (let row = range.startRow; row <= range.endRow; row++) {
+            for (let col = range.startCol; col <= range.endCol; col++) {
+              if (newImageData[row] && newImageData[row][col] !== undefined) {
+                newImageData[row][col] = "";
+              }
             }
           }
+        });
+      } 
+      // Handle single selected cell
+      else if (selectedCell) {
+        if (newImageData[selectedCell.row] && newImageData[selectedCell.row][selectedCell.col] !== undefined) {
+          newImageData[selectedCell.row][selectedCell.col] = "";
         }
-      });
+      }
       
       return newImageData;
     });
 
-    const totalCells = selectedRanges.reduce((sum, range) => 
-      sum + (range.endRow - range.startRow + 1) * (range.endCol - range.startCol + 1), 0
-    );
-
     toast({
       title: "Cells Cleared",
-      description: `${totalCells} cell${totalCells > 1 ? 's' : ''} cleared successfully`,
+      description: `${cellsCleared} cell${cellsCleared > 1 ? 's' : ''} cleared successfully`,
     });
-  }, [selectedRanges, data, pushDataState, toast]);
+  }, [selectedRanges, selectedCell, data, pushDataState, toast]);
 
   // Enhanced selection functions for keyboard shortcuts
   const handleExtendSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right', toEdge?: boolean) => {
