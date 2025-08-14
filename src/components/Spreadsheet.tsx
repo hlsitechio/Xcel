@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
-import { SpreadsheetToolbar } from "./SpreadsheetToolbar";
+import { FileMenu } from "./FileMenu";
+import { RibbonTabs } from "./ribbon/RibbonTabs";
 import { FormulaBar } from "./FormulaBar";
 import { ResizableSpreadsheetGrid } from "./ResizableSpreadsheetGrid";
 import { FormulaParser } from "@/utils/formulaParser";
@@ -132,13 +133,16 @@ export const Spreadsheet = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <SpreadsheetToolbar
+      <FileMenu onExportCSV={exportCSV} />
+      
+      <RibbonTabs
         zoom={zoom}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onExportCSV={exportCSV}
         onAddRow={addRow}
         onAddColumn={addColumn}
+        selectedCell={selectedCell}
       />
       
       <FormulaBar
