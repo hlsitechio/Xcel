@@ -12,8 +12,8 @@ export const SpreadsheetHeader = ({ onExportCSV, onAddRow, onAddColumn }: Spread
     <div className="flex items-center justify-between p-4 border-b border-border bg-card">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <FileSpreadsheet className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-semibold text-foreground">ExcelKiller</h1>
+          <img src="/lovable-uploads/f8a05b95-eea0-4f33-ad2f-4dccac2f41ec.png" alt="Xcel Logo" className="h-6 w-6" />
+          <h1 className="text-xl font-semibold text-foreground">Xcel</h1>
         </div>
         <div className="h-6 w-px bg-border" />
         <span className="text-sm text-muted-foreground">Professional Spreadsheet</span>
