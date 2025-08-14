@@ -45,7 +45,8 @@ export const ResizableSpreadsheetCell = ({
   // Update the editing value in real-time to sync with formula bar
   const updateEditingValue = (newValue: string) => {
     setEditValue(newValue);
-    if (onEditingValueChange && isSelected && isEditing) {
+    // Always update the editing value when this cell is selected and editing
+    if (onEditingValueChange && isSelected) {
       onEditingValueChange(newValue);
     }
   };
@@ -58,19 +59,16 @@ export const ResizableSpreadsheetCell = ({
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
-      // Notify that editing started
-      if (onEditingValueChange && isSelected) {
-        onEditingValueChange(editValue);
-      }
     }
-  }, [isEditing, isSelected, editValue, onEditingValueChange]);
+  }, [isEditing]);
 
-  // Clear editing value when cell is no longer selected or editing stops
+  // Sync editing value when entering/exiting edit mode
   useEffect(() => {
-    if (!isSelected || !isEditing) {
-      if (onEditingValueChange) {
-        onEditingValueChange("");
-      }
+    if (isSelected && isEditing && onEditingValueChange) {
+      // Don't send the value immediately, let the updateEditingValue handle it
+      return;
+    } else if (onEditingValueChange && (!isSelected || !isEditing)) {
+      onEditingValueChange("");
     }
   }, [isSelected, isEditing, onEditingValueChange]);
 
