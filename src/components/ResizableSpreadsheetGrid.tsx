@@ -24,6 +24,7 @@ export const ResizableSpreadsheetGrid = ({
   const [baseRowHeights, setBaseRowHeights] = useState<number[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastVisibleRangeRef = useRef({ startRow: 0, endRow: 50, startCol: 0, endCol: 26 });
   const [visibleRange, setVisibleRange] = useState({ 
     startRow: 0, 
     endRow: 50, 
@@ -47,83 +48,80 @@ export const ResizableSpreadsheetGrid = ({
     const cols = Math.max(data[0]?.length || 26, 26);
     const rows = Math.max(data.length, 100);
     
-    if (baseColumnWidths.length < cols) {
-      setBaseColumnWidths(prev => [
-        ...prev,
-        ...Array(cols - prev.length).fill(120)
-      ]);
-    }
+    setBaseColumnWidths(prev => {
+      if (prev.length < cols) {
+        return [...prev, ...Array(cols - prev.length).fill(120)];
+      }
+      return prev;
+    });
     
-    if (baseRowHeights.length < rows) {
-      setBaseRowHeights(prev => [
-        ...prev,
-        ...Array(rows - prev.length).fill(32)
-      ]);
-    }
+    setBaseRowHeights(prev => {
+      if (prev.length < rows) {
+        return [...prev, ...Array(rows - prev.length).fill(32)];
+      }
+      return prev;
+    });
   }, [data, baseColumnWidths.length, baseRowHeights.length]);
 
-  // Optimized scroll handling with debouncing
+  // Stable scroll handling to prevent flashing
   useEffect(() => {
     const handleScroll = () => {
       if (!gridRef.current) return;
       
-      // Clear existing timeout
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+      const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = gridRef.current;
+      
+      // Calculate visible range with larger buffer to prevent constant updates
+      const rowHeight = 32 * zoom;
+      const colWidth = 120 * zoom;
+      const headerHeight = 32 * zoom;
+      const headerWidth = 60 * zoom;
+      
+      // Calculate with more generous buffers
+      const bufferRows = 20;
+      const bufferCols = 10;
+      
+      const startRow = Math.max(0, Math.floor((scrollTop - headerHeight) / rowHeight) - bufferRows);
+      const endRow = Math.min(data.length + 50, startRow + Math.ceil(clientHeight / rowHeight) + bufferRows * 2);
+      
+      const startCol = Math.max(0, Math.floor((scrollLeft - headerWidth) / colWidth) - bufferCols);
+      const endCol = Math.min((data[0]?.length || 26) + 30, startCol + Math.ceil(clientWidth / colWidth) + bufferCols * 2);
+      
+      const newRange = { startRow, endRow, startCol, endCol };
+      const lastRange = lastVisibleRangeRef.current;
+      
+      // Only update if there's a really significant change to prevent flashing
+      const shouldUpdate = 
+        Math.abs(newRange.startRow - lastRange.startRow) > 10 ||
+        Math.abs(newRange.endRow - lastRange.endRow) > 10 ||
+        Math.abs(newRange.startCol - lastRange.startCol) > 5 ||
+        Math.abs(newRange.endCol - lastRange.endCol) > 5;
+      
+      if (shouldUpdate) {
+        lastVisibleRangeRef.current = newRange;
+        setVisibleRange(newRange);
       }
       
-      // Debounce the scroll updates to reduce flashing
-      scrollTimeoutRef.current = setTimeout(() => {
-        if (!gridRef.current) return;
-        
-        const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = gridRef.current;
-        
-        // Calculate visible rows and columns with buffer
-        const rowHeight = 32 * zoom;
-        const colWidth = 120 * zoom;
-        const headerHeight = 32 * zoom;
-        const headerWidth = 60 * zoom;
-        
-        const startRow = Math.max(0, Math.floor((scrollTop - headerHeight) / rowHeight) - 5);
-        const endRow = Math.min(data.length + 20, startRow + Math.ceil(clientHeight / rowHeight) + 15);
-        
-        const startCol = Math.max(0, Math.floor((scrollLeft - headerWidth) / colWidth) - 5);
-        const endCol = Math.min((data[0]?.length || 26) + 20, startCol + Math.ceil(clientWidth / colWidth) + 15);
-        
-        const newVisibleRange = { startRow, endRow, startCol, endCol };
-        
-        // Only update if the range has changed significantly (reduce flickering)
-        setVisibleRange(prev => {
-          const hasSignificantChange = 
-            Math.abs(newVisibleRange.startRow - prev.startRow) > 3 ||
-            Math.abs(newVisibleRange.endRow - prev.endRow) > 3 ||
-            Math.abs(newVisibleRange.startCol - prev.startCol) > 3 ||
-            Math.abs(newVisibleRange.endCol - prev.endCol) > 3;
-            
-          return hasSignificantChange ? newVisibleRange : prev;
-        });
-        
-        // Load more data when near the end (with larger buffer to prevent frequent loads)
-        if (scrollTop > scrollHeight - clientHeight - 2000) {
-          onLoadMoreRows();
-        }
-        
-        if (scrollLeft > scrollWidth - clientWidth - 2000) {
-          onLoadMoreCols();
-        }
-      }, 16); // ~60fps debouncing
+      // Load more data when near the end (with very large buffer)
+      if (scrollTop > scrollHeight - clientHeight - 3000) {
+        onLoadMoreRows();
+      }
+      
+      if (scrollLeft > scrollWidth - clientWidth - 3000) {
+        onLoadMoreCols();
+      }
     };
 
     const gridElement = gridRef.current;
     if (gridElement) {
+      // Use passive scrolling for better performance
       gridElement.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll(); // Initial call
+      
+      // Throttled initial call
+      const timeoutId = setTimeout(handleScroll, 100);
       
       return () => {
         gridElement.removeEventListener('scroll', handleScroll);
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
+        clearTimeout(timeoutId);
       };
     }
   }, [data, zoom, onLoadMoreRows, onLoadMoreCols]);
@@ -208,73 +206,72 @@ export const ResizableSpreadsheetGrid = ({
             onRowResize={handleRowResize}
           />
           
-          {/* Column headers - memoized to prevent unnecessary re-renders */}
-          {useMemo(() => 
-            Array.from({ length: visibleRange.endCol }, (_, i) => i)
-              .slice(visibleRange.startCol)
-              .map((colIndex) => (
-                <ResizableSpreadsheetCell
-                  key={`header-${colIndex}`}
-                  value={getColumnHeader(colIndex)}
-                  rowIndex={-1}
-                  colIndex={colIndex}
-                  isSelected={false}
-                  isHeader={true}
-                  width={columnWidths[colIndex] || (120 * zoom)}
-                  height={32 * zoom}
-                  onValueChange={onCellChange}
-                  onCellSelect={onCellSelect}
-                  onColumnResize={handleColumnResize}
-                  onRowResize={handleRowResize}
-                />
-              )), [visibleRange.startCol, visibleRange.endCol, columnWidths, zoom, onCellChange, onCellSelect, handleColumnResize, handleRowResize]
-          )}
+          {/* Column headers - stable rendering */}
+          {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 50) }, (_, i) => {
+            const colIndex = visibleRange.startCol + i;
+            return (
+              <ResizableSpreadsheetCell
+                key={`header-${colIndex}`}
+                value={getColumnHeader(colIndex)}
+                rowIndex={-1}
+                colIndex={colIndex}
+                isSelected={false}
+                isHeader={true}
+                width={columnWidths[colIndex] || (120 * zoom)}
+                height={32 * zoom}
+                onValueChange={onCellChange}
+                onCellSelect={onCellSelect}
+                onColumnResize={handleColumnResize}
+                onRowResize={handleRowResize}
+              />
+            );
+          })}
         </div>
 
-        {/* Data rows - memoized to prevent unnecessary re-renders */}
-        {useMemo(() => 
-          Array.from({ length: visibleRange.endRow }, (_, i) => i)
-            .slice(visibleRange.startRow)
-            .map((rowIndex) => (
-              <div key={`row-${rowIndex}`} className="flex">
-                {/* Row header */}
-                <ResizableSpreadsheetCell
-                  value={(rowIndex + 1).toString()}
-                  rowIndex={rowIndex}
-                  colIndex={-1}
-                  isSelected={false}
-                  isHeader={true}
-                  width={60 * zoom}
-                  height={rowHeights[rowIndex] || (32 * zoom)}
-                  onValueChange={onCellChange}
-                  onCellSelect={onCellSelect}
-                  onColumnResize={handleColumnResize}
-                  onRowResize={handleRowResize}
-                />
-                
-                {/* Data cells */}
-                {Array.from({ length: visibleRange.endCol }, (_, i) => i)
-                  .slice(visibleRange.startCol)
-                  .map((colIndex) => (
-                    <ResizableSpreadsheetCell
-                      key={`${rowIndex}-${colIndex}`}
-                      value={data[rowIndex]?.[colIndex] || ""}
-                      rowIndex={rowIndex}
-                      colIndex={colIndex}
-                      isSelected={
-                        selectedCell?.row === rowIndex && selectedCell?.col === colIndex
-                      }
-                      width={columnWidths[colIndex] || (120 * zoom)}
-                      height={rowHeights[rowIndex] || (32 * zoom)}
-                      onValueChange={onCellChange}
-                      onCellSelect={onCellSelect}
-                      onColumnResize={handleColumnResize}
-                      onRowResize={handleRowResize}
-                    />
-                  ))}
-              </div>
-            )), [visibleRange, data, selectedCell, columnWidths, rowHeights, zoom, onCellChange, onCellSelect, handleColumnResize, handleRowResize]
-        )}
+        {/* Data rows - stable rendering without excessive memoization */}
+        {Array.from({ length: Math.min(visibleRange.endRow - visibleRange.startRow, 100) }, (_, i) => {
+          const rowIndex = visibleRange.startRow + i;
+          return (
+            <div key={`row-${rowIndex}`} className="flex">
+              {/* Row header */}
+              <ResizableSpreadsheetCell
+                value={(rowIndex + 1).toString()}
+                rowIndex={rowIndex}
+                colIndex={-1}
+                isSelected={false}
+                isHeader={true}
+                width={60 * zoom}
+                height={rowHeights[rowIndex] || (32 * zoom)}
+                onValueChange={onCellChange}
+                onCellSelect={onCellSelect}
+                onColumnResize={handleColumnResize}
+                onRowResize={handleRowResize}
+              />
+              
+              {/* Data cells */}
+              {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 50) }, (_, j) => {
+                const colIndex = visibleRange.startCol + j;
+                return (
+                  <ResizableSpreadsheetCell
+                    key={`${rowIndex}-${colIndex}`}
+                    value={data[rowIndex]?.[colIndex] || ""}
+                    rowIndex={rowIndex}
+                    colIndex={colIndex}
+                    isSelected={
+                      selectedCell?.row === rowIndex && selectedCell?.col === colIndex
+                    }
+                    width={columnWidths[colIndex] || (120 * zoom)}
+                    height={rowHeights[rowIndex] || (32 * zoom)}
+                    onValueChange={onCellChange}
+                    onCellSelect={onCellSelect}
+                    onColumnResize={handleColumnResize}
+                    onRowResize={handleRowResize}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
