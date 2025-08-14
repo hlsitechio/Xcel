@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    strictPort: true,
+    hmr: {
+      overlay: false
+    }
   },
   plugins: [
     react(),
@@ -19,4 +23,37 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'lucide-react',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-button',
+      '@radix-ui/react-select',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-toast'
+    ],
+    force: false
+  },
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-tabs', '@radix-ui/react-button', '@radix-ui/react-select'],
+          icons: ['lucide-react']
+        }
+      }
+    }
+  },
+  esbuild: {
+    target: 'esnext'
+  }
 }));
