@@ -111,13 +111,24 @@ export const Spreadsheet = () => {
       const isShiftKey = event?.shiftKey;
       
       if (isCtrlKey) {
-        // Add new single-cell range to selection
-        setSelectedRanges(prev => [...prev, {
-          startRow: row,
-          startCol: col,
-          endRow: row,
-          endCol: col
-        }]);
+        // Check if this cell is already selected
+        const existingRangeIndex = selectedRanges.findIndex(range => 
+          range.startRow === row && range.startCol === col && 
+          range.endRow === row && range.endCol === col
+        );
+        
+        if (existingRangeIndex !== -1) {
+          // Cell is already selected, remove it (deselect)
+          setSelectedRanges(prev => prev.filter((_, index) => index !== existingRangeIndex));
+        } else {
+          // Add new single-cell range to selection
+          setSelectedRanges(prev => [...prev, {
+            startRow: row,
+            startCol: col,
+            endRow: row,
+            endCol: col
+          }]);
+        }
       } else if (isShiftKey && selectedCell) {
         // Extend selection from last selected cell
         const newRange = {
