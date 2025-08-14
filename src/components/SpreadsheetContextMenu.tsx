@@ -49,7 +49,12 @@ export const SpreadsheetContextMenu: React.FC<SpreadsheetContextMenuProps> = ({
 }) => {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
+      <ContextMenuTrigger 
+        asChild
+        onContextMenu={(e) => {
+          console.log('Context menu triggered', e);
+        }}
+      >
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent className="w-64">

@@ -824,23 +824,25 @@ export const Spreadsheet = () => {
         onFormatCells={handleFormatCells}
         onUndo={undo}
       >
-        <ResizableSpreadsheetGrid
-          ref={gridRef}
-          data={data}
-          selectedCell={selectedCell}
-          selectedRanges={selectedRanges}
-          onCellChange={handleCellChange}
-          onCellSelect={handleCellSelect}
-          onCellMouseDown={handleCellMouseDown}
-          onCellMouseOver={handleCellMouseOver}
-          isCellSelected={isCellSelected}
-          zoom={zoom}
-          onLoadMoreRows={handleLoadMoreRows}
-          onLoadMoreCols={handleLoadMoreCols}
-          imageData={imageData}
-          onDeleteSelectedCells={handleDeleteSelectedCells}
-          onEditingValueChange={setCurrentEditingValue}
-        />
+        <div style={{ width: '100%', height: '100%' }}>
+          <ResizableSpreadsheetGrid
+            ref={gridRef}
+            data={data}
+            selectedCell={selectedCell}
+            selectedRanges={selectedRanges}
+            onCellChange={handleCellChange}
+            onCellSelect={handleCellSelect}
+            onCellMouseDown={handleCellMouseDown}
+            onCellMouseOver={handleCellMouseOver}
+            isCellSelected={isCellSelected}
+            zoom={zoom}
+            onLoadMoreRows={handleLoadMoreRows}
+            onLoadMoreCols={handleLoadMoreCols}
+            imageData={imageData}
+            onDeleteSelectedCells={handleDeleteSelectedCells}
+            onEditingValueChange={setCurrentEditingValue}
+          />
+        </div>
       </SpreadsheetContextMenu>
     </ResponsiveLayout>
   );
