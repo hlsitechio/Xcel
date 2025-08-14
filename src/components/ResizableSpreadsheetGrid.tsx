@@ -22,19 +22,20 @@ export const ResizableSpreadsheetGrid = ({
 }: ResizableSpreadsheetGridProps) => {
   // Base state for dimensions (without zoom applied)
   const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
-    Array(Math.max(data[0]?.length || 26, 26)).fill(120)
+    Array(Math.min(data[0]?.length || 26, 26)).fill(120)
   );
   const [baseRowHeights, setBaseRowHeights] = useState<number[]>(() => 
-    Array(Math.max(data.length, 100)).fill(32)
+    Array(Math.min(data.length, 50)).fill(32)
   );
   
   const gridRef = useRef<HTMLDivElement>(null);
-  const lastVisibleRangeRef = useRef({ startRow: 0, endRow: 50, startCol: 0, endCol: 26 });
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const isScrollingRef = useRef(false);
   const [visibleRange, setVisibleRange] = useState({ 
     startRow: 0, 
-    endRow: 50, 
+    endRow: 30, 
     startCol: 0, 
-    endCol: 26 
+    endCol: 20 
   });
 
   // Calculate scaled dimensions
@@ -48,84 +49,103 @@ export const ResizableSpreadsheetGrid = ({
     [baseRowHeights, zoom]
   );
 
-  // Update base dimensions when data changes
+  // Update base dimensions when data changes (throttled)
   useEffect(() => {
-    const cols = Math.max(data[0]?.length || 26, 26);
-    const rows = Math.max(data.length, 100);
+    const timeoutId = setTimeout(() => {
+      const cols = Math.min(Math.max(data[0]?.length || 26, 26), 100); // Cap at 100 columns
+      const rows = Math.min(Math.max(data.length, 50), 1000); // Cap at 1000 rows
+      
+      setBaseColumnWidths(prev => {
+        if (prev.length < cols) {
+          return [...prev, ...Array(cols - prev.length).fill(120)];
+        }
+        return prev.slice(0, cols);
+      });
+      
+      setBaseRowHeights(prev => {
+        if (prev.length < rows) {
+          return [...prev, ...Array(rows - prev.length).fill(32)];
+        }
+        return prev.slice(0, rows);
+      });
+    }, 100);
     
-    setBaseColumnWidths(prev => {
-      if (prev.length < cols) {
-        return [...prev, ...Array(cols - prev.length).fill(120)];
-      }
-      return prev;
-    });
-    
-    setBaseRowHeights(prev => {
-      if (prev.length < rows) {
-        return [...prev, ...Array(rows - prev.length).fill(32)];
-      }
-      return prev;
-    });
+    return () => clearTimeout(timeoutId);
   }, [data]);
 
-  // Stable scroll handling to prevent flashing
+  // Highly optimized scroll handling
   useEffect(() => {
     const handleScroll = () => {
-      if (!gridRef.current) return;
+      if (!gridRef.current || isScrollingRef.current) return;
       
-      const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = gridRef.current;
+      isScrollingRef.current = true;
       
-      // Calculate visible range with generous buffers
-      const rowHeight = 32 * zoom;
-      const colWidth = 120 * zoom;
-      const headerHeight = 32 * zoom;
-      const headerWidth = 60 * zoom;
-      
-      // Very conservative buffer to prevent flashing
-      const bufferRows = 25;
-      const bufferCols = 15;
-      
-      const startRow = Math.max(0, Math.floor((scrollTop - headerHeight) / rowHeight) - bufferRows);
-      const endRow = Math.min(data.length + 50, startRow + Math.ceil(clientHeight / rowHeight) + bufferRows * 2);
-      
-      const startCol = Math.max(0, Math.floor((scrollLeft - headerWidth) / colWidth) - bufferCols);
-      const endCol = Math.min((data[0]?.length || 26) + 30, startCol + Math.ceil(clientWidth / colWidth) + bufferCols * 2);
-      
-      const newRange = { startRow, endRow, startCol, endCol };
-      const lastRange = lastVisibleRangeRef.current;
-      
-      // Very high threshold for updates to eliminate flashing
-      const shouldUpdate = 
-        Math.abs(newRange.startRow - lastRange.startRow) > 15 ||
-        Math.abs(newRange.endRow - lastRange.endRow) > 15 ||
-        Math.abs(newRange.startCol - lastRange.startCol) > 8 ||
-        Math.abs(newRange.endCol - lastRange.endCol) > 8;
-      
-      if (shouldUpdate) {
-        lastVisibleRangeRef.current = newRange;
-        setVisibleRange(newRange);
+      // Clear existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
       }
       
-      // Load more data when near the end
-      if (scrollTop > scrollHeight - clientHeight - 4000) {
-        onLoadMoreRows();
-      }
-      
-      if (scrollLeft > scrollWidth - clientWidth - 4000) {
-        onLoadMoreCols();
-      }
+      // Throttle updates heavily
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (!gridRef.current) {
+          isScrollingRef.current = false;
+          return;
+        }
+        
+        const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = gridRef.current;
+        
+        // Calculate with minimal rendering window
+        const rowHeight = 32 * zoom;
+        const colWidth = 120 * zoom;
+        
+        // Very small visible window to reduce DOM nodes
+        const visibleRows = Math.ceil(clientHeight / rowHeight);
+        const visibleCols = Math.ceil(clientWidth / colWidth);
+        
+        const startRow = Math.max(0, Math.floor(scrollTop / rowHeight) - 5);
+        const endRow = Math.min(data.length, startRow + visibleRows + 10);
+        
+        const startCol = Math.max(0, Math.floor(scrollLeft / colWidth) - 3);
+        const endCol = Math.min(data[0]?.length || 26, startCol + visibleCols + 6);
+        
+        // Update state in batches
+        setVisibleRange(prev => {
+          const newRange = { startRow, endRow, startCol, endCol };
+          
+          // Only update if there's a substantial change
+          if (
+            Math.abs(newRange.startRow - prev.startRow) > 8 ||
+            Math.abs(newRange.endRow - prev.endRow) > 8 ||
+            Math.abs(newRange.startCol - prev.startCol) > 4 ||
+            Math.abs(newRange.endCol - prev.endCol) > 4
+          ) {
+            return newRange;
+          }
+          return prev;
+        });
+        
+        // Load more data with large threshold
+        if (scrollTop > scrollHeight - clientHeight - 5000) {
+          onLoadMoreRows();
+        }
+        
+        if (scrollLeft > scrollWidth - clientWidth - 5000) {
+          onLoadMoreCols();
+        }
+        
+        isScrollingRef.current = false;
+      }, 50); // Increased throttle time
     };
 
     const gridElement = gridRef.current;
     if (gridElement) {
       gridElement.addEventListener('scroll', handleScroll, { passive: true });
       
-      // Initial call after a delay to prevent immediate updates
-      const timeoutId = setTimeout(handleScroll, 200);
-      
       return () => {
         gridElement.removeEventListener('scroll', handleScroll);
-        clearTimeout(timeoutId);
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
       };
     }
   }, [data, zoom, onLoadMoreRows, onLoadMoreCols]);
@@ -210,9 +230,11 @@ export const ResizableSpreadsheetGrid = ({
             onRowResize={handleRowResize}
           />
           
-          {/* Column headers */}
-          {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 50) }, (_, i) => {
+          {/* Column headers - minimal rendering */}
+          {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 20) }, (_, i) => {
             const colIndex = visibleRange.startCol + i;
+            if (colIndex >= (data[0]?.length || 26)) return null;
+            
             return (
               <ResizableSpreadsheetCell
                 key={`header-${colIndex}`}
@@ -232,9 +254,11 @@ export const ResizableSpreadsheetGrid = ({
           })}
         </div>
 
-        {/* Data rows */}
-        {Array.from({ length: Math.min(visibleRange.endRow - visibleRange.startRow, 100) }, (_, i) => {
+        {/* Data rows - performance optimized */}
+        {Array.from({ length: Math.min(visibleRange.endRow - visibleRange.startRow, 30) }, (_, i) => {
           const rowIndex = visibleRange.startRow + i;
+          if (rowIndex >= data.length) return null;
+          
           return (
             <div key={`row-${rowIndex}`} className="flex">
               {/* Row header */}
@@ -252,9 +276,11 @@ export const ResizableSpreadsheetGrid = ({
                 onRowResize={handleRowResize}
               />
               
-              {/* Data cells */}
-              {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 50) }, (_, j) => {
+              {/* Data cells - limited count */}
+              {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 20) }, (_, j) => {
                 const colIndex = visibleRange.startCol + j;
+                if (colIndex >= (data[0]?.length || 26)) return null;
+                
                 return (
                   <ResizableSpreadsheetCell
                     key={`${rowIndex}-${colIndex}`}
