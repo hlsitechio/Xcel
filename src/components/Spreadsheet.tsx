@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { FileMenu } from "./FileMenu";
 import { FormulaBar } from "./FormulaBar";
 import { ResizableSpreadsheetGrid } from "./ResizableSpreadsheetGrid";
@@ -6,6 +6,7 @@ import { ResponsiveLayout } from "./ResponsiveLayout";
 import { AdaptiveToolbar } from "./AdaptiveToolbar";
 import { FormulaParser } from "@/utils/formulaParser";
 import { useToast } from "@/components/ui/use-toast";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 const INITIAL_ROWS = 100;
 const INITIAL_COLS = 26;
@@ -29,6 +30,7 @@ export const Spreadsheet = () => {
   const [selectionStart, setSelectionStart] = useState<{ row: number; col: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const { toast } = useToast();
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const handleCellChange = useCallback((row: number, col: number, value: string) => {
     setData(prevData => {
@@ -346,6 +348,139 @@ export const Spreadsheet = () => {
     });
   }, [selectedRanges, toast]);
 
+  // Enhanced selection functions for keyboard shortcuts
+  const handleExtendSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right', toEdge?: boolean) => {
+    if (!selectedCell) return;
+
+    let newRow = selectedCell.row;
+    let newCol = selectedCell.col;
+
+    if (toEdge) {
+      // Extend to data edge
+      switch (direction) {
+        case 'up':
+          newRow = 0;
+          for (let row = selectedCell.row - 1; row >= 0; row--) {
+            if (data[row]?.[selectedCell.col] && data[row][selectedCell.col].trim() !== '') {
+              newRow = row;
+              break;
+            }
+          }
+          break;
+        case 'down':
+          newRow = data.length - 1;
+          for (let row = selectedCell.row + 1; row < data.length; row++) {
+            if (data[row]?.[selectedCell.col] && data[row][selectedCell.col].trim() !== '') {
+              newRow = row;
+            }
+          }
+          break;
+        case 'left':
+          newCol = 0;
+          for (let col = selectedCell.col - 1; col >= 0; col--) {
+            if (data[selectedCell.row]?.[col] && data[selectedCell.row][col].trim() !== '') {
+              newCol = col;
+              break;
+            }
+          }
+          break;
+        case 'right':
+          const maxCol = data[0]?.length || 26;
+          newCol = maxCol - 1;
+          for (let col = selectedCell.col + 1; col < maxCol; col++) {
+            if (data[selectedCell.row]?.[col] && data[selectedCell.row][col].trim() !== '') {
+              newCol = col;
+            }
+          }
+          break;
+      }
+    } else {
+      // Extend by one cell
+      switch (direction) {
+        case 'up':
+          newRow = Math.max(0, selectedCell.row - 1);
+          break;
+        case 'down':
+          newRow = Math.min(data.length - 1, selectedCell.row + 1);
+          break;
+        case 'left':
+          newCol = Math.max(0, selectedCell.col - 1);
+          break;
+        case 'right':
+          const maxCol = data[0]?.length || 26;
+          newCol = Math.min(maxCol - 1, selectedCell.col + 1);
+          break;
+      }
+    }
+
+    // Create extended selection range
+    const newRange = {
+      startRow: Math.min(selectedCell.row, newRow),
+      startCol: Math.min(selectedCell.col, newCol),
+      endRow: Math.max(selectedCell.row, newRow),
+      endCol: Math.max(selectedCell.col, newCol)
+    };
+
+    setSelectedRanges([newRange]);
+  }, [selectedCell, data]);
+
+  const handleSelectAll = useCallback(() => {
+    // Find the actual data bounds
+    let maxRow = 0;
+    let maxCol = 0;
+    
+    for (let row = 0; row < data.length; row++) {
+      for (let col = 0; col < (data[row]?.length || 0); col++) {
+        if (data[row][col] && data[row][col].trim() !== '') {
+          maxRow = Math.max(maxRow, row);
+          maxCol = Math.max(maxCol, col);
+        }
+      }
+    }
+
+    setSelectedRanges([{
+      startRow: 0,
+      startCol: 0,
+      endRow: Math.max(maxRow, 20), // Minimum selection size
+      endCol: Math.max(maxCol, 10)
+    }]);
+  }, [data]);
+
+  const handleSelectRow = useCallback((row: number) => {
+    const maxCol = data[0]?.length || 26;
+    setSelectedRanges([{
+      startRow: row,
+      startCol: 0,
+      endRow: row,
+      endCol: maxCol - 1
+    }]);
+  }, [data]);
+
+  const handleSelectColumn = useCallback((col: number) => {
+    setSelectedRanges([{
+      startRow: 0,
+      startCol: col,
+      endRow: data.length - 1,
+      endCol: col
+    }]);
+  }, [data]);
+
+  // Initialize keyboard shortcuts
+  useKeyboardShortcuts({
+    selectedCell,
+    selectedRanges,
+    data,
+    imageData,
+    onCellChange: handleCellChange,
+    onCellSelect: handleCellSelect,
+    onDeleteSelectedCells: handleDeleteSelectedCells,
+    onExtendSelection: handleExtendSelection,
+    onSelectAll: handleSelectAll,
+    onSelectRow: handleSelectRow,
+    onSelectColumn: handleSelectColumn,
+    gridRef
+  });
+
   return (
     <ResponsiveLayout>
       {/* File Menu - Always visible */}
@@ -373,6 +508,7 @@ export const Spreadsheet = () => {
       
       {/* Spreadsheet Grid - Adaptive sizing */}
       <ResizableSpreadsheetGrid
+        ref={gridRef}
         data={data}
         selectedCell={selectedCell}
         selectedRanges={selectedRanges}

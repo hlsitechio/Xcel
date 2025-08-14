@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { RibbonTabs } from "./ribbon/RibbonTabs";
 import { ImageUpload } from "./ImageUpload";
+import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
 import { cn } from "@/lib/utils";
 
 interface AdaptiveToolbarProps {
@@ -121,6 +122,8 @@ export const AdaptiveToolbar = ({
               <Button variant="ghost" size="sm" onClick={onExportCSV} className="h-8 w-8 p-0">
                 <Download className="h-3 w-3" />
               </Button>
+              
+              <KeyboardShortcutsDialog />
             </div>
           </div>
         </div>

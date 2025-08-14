@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo, forwardRef } from "react";
 import { ResizableSpreadsheetCell } from "./ResizableSpreadsheetCell";
 
 interface ResizableSpreadsheetGridProps {
@@ -22,7 +22,7 @@ interface ResizableSpreadsheetGridProps {
   onDeleteSelectedCells: () => void;
 }
 
-export const ResizableSpreadsheetGrid = ({
+export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpreadsheetGridProps>(({
   data,
   selectedCell,
   selectedRanges,
@@ -36,7 +36,7 @@ export const ResizableSpreadsheetGrid = ({
   onLoadMoreCols,
   imageData = [],
   onDeleteSelectedCells,
-}: ResizableSpreadsheetGridProps) => {
+}, ref) => {
   // Base state for dimensions (without zoom applied)
   const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
     Array(Math.min(data[0]?.length || 26, 26)).fill(120)
@@ -237,7 +237,7 @@ export const ResizableSpreadsheetGrid = ({
 
   return (
     <div 
-      ref={gridRef}
+      ref={ref}
       className="flex-1 overflow-auto bg-background relative focus:outline-none"
       tabIndex={0}
     >
@@ -349,4 +349,4 @@ export const ResizableSpreadsheetGrid = ({
       </div>
     </div>
   );
-};
+});
