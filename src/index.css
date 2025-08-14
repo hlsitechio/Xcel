@@ -129,5 +129,33 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Prevent bounce scrolling on mobile */
+    overscroll-behavior: none;
+    /* Improve touch responsiveness */
+    touch-action: manipulation;
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 768px) {
+    .spreadsheet-container {
+      /* Prevent zooming when inputs are focused */
+      input, select, textarea {
+        font-size: 16px;
+      }
+    }
+  }
+
+  /* Improve scrolling performance */
+  .spreadsheet-grid {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Touch-friendly sizing */
+  @media (pointer: coarse) {
+    .touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 }

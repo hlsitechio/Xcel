@@ -45,15 +45,15 @@ export const FormulaBar = ({ selectedCell, cellValue, selectedInfo, onFormulaSub
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 border-b border-border bg-muted/30">
-      <div className="flex items-center gap-2 px-2 py-1 bg-muted/30 border-r border-border min-w-[120px]">
-        <span className="text-xs font-medium text-muted-foreground">Cell:</span>
-        <span className="text-sm font-mono">
+    <div className="flex items-center gap-2 p-2 border-b border-border bg-muted/30 text-xs md:text-sm md:gap-3 md:p-3">
+      <div className="flex items-center gap-1 px-1 py-1 bg-muted/30 border-r border-border min-w-[80px] md:min-w-[120px] md:gap-2 md:px-2">
+        <span className="text-xs font-medium text-muted-foreground hidden md:inline">Cell:</span>
+        <span className="text-xs font-mono md:text-sm">
           {selectedInfo || getCellAddress()}
         </span>
       </div>
 
-      <div className="flex-1 flex items-center gap-2">
+      <div className="flex-1 flex items-center gap-1 md:gap-2">
         <Input
           value={formula}
           onChange={(e) => {
@@ -61,15 +61,15 @@ export const FormulaBar = ({ selectedCell, cellValue, selectedInfo, onFormulaSub
             setIsEditing(true);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Enter value or formula (e.g., =SUM(A1:A5))"
-          className="flex-1"
+          placeholder="Enter value or formula"
+          className="flex-1 text-xs md:text-sm"
         />
         {isEditing && (
           <div className="flex gap-1">
-            <Button size="sm" variant="outline" onClick={handleSubmit}>
+            <Button size="sm" variant="outline" onClick={handleSubmit} className="h-7 w-7 p-0 md:h-8 md:w-8">
               <Check className="h-3 w-3" />
             </Button>
-            <Button size="sm" variant="outline" onClick={handleCancel}>
+            <Button size="sm" variant="outline" onClick={handleCancel} className="h-7 w-7 p-0 md:h-8 md:w-8">
               <X className="h-3 w-3" />
             </Button>
           </div>

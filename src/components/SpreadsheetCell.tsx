@@ -62,7 +62,7 @@ export const SpreadsheetCell = ({
   if (isHeader) {
     return (
       <div
-        className="h-8 min-w-20 flex items-center justify-center border-r border-b border-header-border bg-header-bg text-sm font-medium text-foreground cursor-default"
+        className="h-10 min-w-16 md:h-8 md:min-w-20 flex items-center justify-center border-r border-b border-header-border bg-header-bg text-xs md:text-sm font-medium text-foreground cursor-default touch-manipulation"
         onClick={handleClick}
       >
         {value}
@@ -73,7 +73,7 @@ export const SpreadsheetCell = ({
   return (
     <div
       className={cn(
-        "h-8 min-w-20 border-r border-b border-cell-border relative cursor-cell transition-colors",
+        "h-10 min-w-16 md:h-8 md:min-w-20 border-r border-b border-cell-border relative cursor-cell transition-colors touch-manipulation",
         isSelected ? "bg-cell-selected ring-1 ring-primary" : "hover:bg-cell-hover"
       )}
       onClick={handleClick}
@@ -87,11 +87,11 @@ export const SpreadsheetCell = ({
           onChange={(e) => setEditValue(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="w-full h-full px-2 text-sm bg-transparent outline-none"
+          className="w-full h-full px-2 text-xs md:text-sm bg-transparent outline-none"
         />
       ) : (
-        <div className="h-full px-2 flex items-center text-sm text-foreground">
-          {value}
+        <div className="h-full px-2 flex items-center text-xs md:text-sm text-foreground overflow-hidden">
+          <span className="truncate">{value}</span>
         </div>
       )}
     </div>
