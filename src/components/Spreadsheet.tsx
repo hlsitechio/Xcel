@@ -16,6 +16,7 @@ export const Spreadsheet = () => {
       .fill(null)
       .map(() => Array(INITIAL_COLS).fill(""))
   );
+  const [imageData, setImageData] = useState<string[][]>([]);
   
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const [selectedRanges, setSelectedRanges] = useState<Array<{
@@ -239,6 +240,37 @@ export const Spreadsheet = () => {
     });
   }, []);
 
+  const handleImageUpload = useCallback((uploadedImageData: string[][], imageInfo: { width: number; height: number; cellsX: number; cellsY: number }) => {
+    // Ensure data array is large enough to accommodate the image
+    setData(prevData => {
+      const newData = [...prevData];
+      
+      // Extend rows if needed
+      while (newData.length < uploadedImageData.length) {
+        const currentCols = newData[0]?.length || INITIAL_COLS;
+        newData.push(Array(currentCols).fill(""));
+      }
+      
+      // Extend columns if needed
+      const maxCols = Math.max(imageInfo.cellsX, newData[0]?.length || 0);
+      newData.forEach(row => {
+        while (row.length < maxCols) {
+          row.push("");
+        }
+      });
+      
+      return newData;
+    });
+
+    // Set the image data
+    setImageData(uploadedImageData);
+    
+    toast({
+      title: "Image Loaded",
+      description: `Image split into ${imageInfo.cellsX}×${imageInfo.cellsY} cells`,
+    });
+  }, [toast]);
+
   return (
     <ResponsiveLayout>
       {/* File Menu - Always visible */}
@@ -253,6 +285,7 @@ export const Spreadsheet = () => {
         onAddRow={addRow}
         onAddColumn={addColumn}
         selectedCell={selectedCell}
+        onImageUpload={handleImageUpload}
       />
       
       {/* Formula Bar - Responsive sizing */}
@@ -276,6 +309,7 @@ export const Spreadsheet = () => {
         zoom={zoom}
         onLoadMoreRows={handleLoadMoreRows}
         onLoadMoreCols={handleLoadMoreCols}
+        imageData={imageData}
       />
     </ResponsiveLayout>
   );

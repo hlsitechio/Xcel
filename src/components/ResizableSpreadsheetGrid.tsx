@@ -18,6 +18,7 @@ interface ResizableSpreadsheetGridProps {
   zoom: number;
   onLoadMoreRows: () => void;
   onLoadMoreCols: () => void;
+  imageData?: string[][];
 }
 
 export const ResizableSpreadsheetGrid = ({
@@ -32,6 +33,7 @@ export const ResizableSpreadsheetGrid = ({
   zoom,
   onLoadMoreRows,
   onLoadMoreCols,
+  imageData = [],
 }: ResizableSpreadsheetGridProps) => {
   // Base state for dimensions (without zoom applied)
   const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
@@ -309,6 +311,7 @@ export const ResizableSpreadsheetGrid = ({
                     isSelected={isCellSelected(rowIndex, colIndex)}
                     width={columnWidths[colIndex] || (120 * zoom)}
                     height={rowHeights[rowIndex] || (32 * zoom)}
+                    imageData={imageData[rowIndex]?.[colIndex]}
                     onValueChange={onCellChange}
                     onCellSelect={onCellSelect}
                     onCellMouseDown={onCellMouseDown}

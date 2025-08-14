@@ -14,9 +14,11 @@ import {
   Download,
   Plus,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Upload
 } from "lucide-react";
 import { RibbonTabs } from "./ribbon/RibbonTabs";
+import { ImageUpload } from "./ImageUpload";
 import { cn } from "@/lib/utils";
 
 interface AdaptiveToolbarProps {
@@ -27,6 +29,7 @@ interface AdaptiveToolbarProps {
   onAddRow: () => void;
   onAddColumn: () => void;
   selectedCell: { row: number; col: number } | null;
+  onImageUpload: (imageData: string[][], imageInfo: { width: number; height: number; cellsX: number; cellsY: number }) => void;
 }
 
 export const AdaptiveToolbar = ({
@@ -36,7 +39,8 @@ export const AdaptiveToolbar = ({
   onExportCSV,
   onAddRow,
   onAddColumn,
-  selectedCell
+  selectedCell,
+  onImageUpload
 }: AdaptiveToolbarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -81,6 +85,9 @@ export const AdaptiveToolbar = ({
                       onAddColumn={onAddColumn}
                       selectedCell={selectedCell}
                     />
+                    <div className="mt-4">
+                      <ImageUpload onImageUpload={onImageUpload} />
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -94,6 +101,8 @@ export const AdaptiveToolbar = ({
                 <Plus className="h-3 w-3 mr-1" />
                 <span className="text-xs">Col</span>
               </Button>
+              
+              <ImageUpload onImageUpload={onImageUpload} />
             </div>
 
             <div className="flex items-center gap-1">

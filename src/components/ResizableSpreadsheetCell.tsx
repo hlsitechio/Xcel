@@ -9,6 +9,7 @@ interface ResizableSpreadsheetCellProps {
   isHeader?: boolean;
   width: number;
   height: number;
+  imageData?: string;
   onValueChange: (row: number, col: number, value: string) => void;
   onCellSelect: (row: number, col: number, event?: React.MouseEvent) => void;
   onCellMouseDown?: (row: number, col: number, event?: React.MouseEvent) => void;
@@ -25,6 +26,7 @@ export const ResizableSpreadsheetCell = ({
   isHeader = false,
   width,
   height,
+  imageData,
   onValueChange,
   onCellSelect,
   onCellMouseDown,
@@ -172,8 +174,19 @@ export const ResizableSpreadsheetCell = ({
           style={{ width: '100%', height: '100%' }}
         />
       ) : (
-        <div className="w-full h-full px-2 flex items-center text-sm text-foreground overflow-hidden">
-          {value}
+        <div className="w-full h-full relative overflow-hidden">
+          {imageData ? (
+            <img
+              src={imageData}
+              alt="Cell content"
+              className="w-full h-full object-cover"
+              style={{ objectFit: 'cover', objectPosition: 'top left' }}
+            />
+          ) : (
+            <div className="w-full h-full px-2 flex items-center text-sm text-foreground">
+              {value}
+            </div>
+          )}
         </div>
       )}
     </div>
