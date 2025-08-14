@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
-import { SpreadsheetHeader } from "./SpreadsheetHeader";
+import { SpreadsheetToolbar } from "./SpreadsheetToolbar";
 import { FormulaBar } from "./FormulaBar";
-import { SpreadsheetGrid } from "./SpreadsheetGrid";
+import { ResizableSpreadsheetGrid } from "./ResizableSpreadsheetGrid";
 import { FormulaParser } from "@/utils/formulaParser";
 import { useToast } from "@/components/ui/use-toast";
 
-const INITIAL_ROWS = 20;
-const INITIAL_COLS = 10;
+const INITIAL_ROWS = 100;
+const INITIAL_COLS = 26;
 
 export const Spreadsheet = () => {
   const [data, setData] = useState<string[][]>(() =>
@@ -16,6 +16,7 @@ export const Spreadsheet = () => {
   );
   
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
+  const [zoom, setZoom] = useState(1);
   const { toast } = useToast();
 
   const handleCellChange = useCallback((row: number, col: number, value: string) => {
@@ -110,9 +111,31 @@ export const Spreadsheet = () => {
     return data[selectedCell.row]?.[selectedCell.col] || "";
   }, [selectedCell, data]);
 
+  const handleZoomIn = useCallback(() => {
+    setZoom(prev => Math.min(2, prev + 0.1));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom(prev => Math.max(0.5, prev - 0.1));
+  }, []);
+
+  const handleLoadMoreRows = useCallback(() => {
+    setData(prevData => [
+      ...prevData,
+      ...Array(50).fill(null).map(() => Array(prevData[0]?.length || INITIAL_COLS).fill(""))
+    ]);
+  }, []);
+
+  const handleLoadMoreCols = useCallback(() => {
+    setData(prevData => prevData.map(row => [...row, ...Array(10).fill("")]));
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-background">
-      <SpreadsheetHeader
+      <SpreadsheetToolbar
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
         onExportCSV={exportCSV}
         onAddRow={addRow}
         onAddColumn={addColumn}
@@ -124,11 +147,14 @@ export const Spreadsheet = () => {
         onFormulaSubmit={handleFormulaSubmit}
       />
       
-      <SpreadsheetGrid
+      <ResizableSpreadsheetGrid
         data={data}
         selectedCell={selectedCell}
         onCellChange={handleCellChange}
         onCellSelect={handleCellSelect}
+        zoom={zoom}
+        onLoadMoreRows={handleLoadMoreRows}
+        onLoadMoreCols={handleLoadMoreCols}
       />
     </div>
   );
