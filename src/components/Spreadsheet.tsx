@@ -66,10 +66,13 @@ export const Spreadsheet = () => {
   }, [selectedCell, handleCellChange]);
 
   const addRow = useCallback(() => {
-    setData(prevData => [
-      ...prevData,
-      Array(prevData[0]?.length || INITIAL_COLS).fill("")
-    ]);
+    setData(prevData => {
+      const newData = [
+        ...prevData,
+        Array(prevData[0]?.length || INITIAL_COLS).fill("")
+      ];
+      return newData;
+    });
     toast({
       title: "Row Added",
       description: "New row added successfully",
@@ -77,7 +80,13 @@ export const Spreadsheet = () => {
   }, [toast]);
 
   const addColumn = useCallback(() => {
-    setData(prevData => prevData.map(row => [...row, ""]));
+    setData(prevData => {
+      if (prevData.length === 0) {
+        // If no data, create initial structure
+        return Array(INITIAL_ROWS).fill(null).map(() => Array(1).fill(""));
+      }
+      return prevData.map(row => [...row, ""]);
+    });
     toast({
       title: "Column Added", 
       description: "New column added successfully",
@@ -121,14 +130,21 @@ export const Spreadsheet = () => {
   }, []);
 
   const handleLoadMoreRows = useCallback(() => {
-    setData(prevData => [
-      ...prevData,
-      ...Array(50).fill(null).map(() => Array(prevData[0]?.length || INITIAL_COLS).fill(""))
-    ]);
+    setData(prevData => {
+      const currentCols = prevData[0]?.length || INITIAL_COLS;
+      const newRows = Array(50).fill(null).map(() => Array(currentCols).fill(""));
+      return [...prevData, ...newRows];
+    });
   }, []);
 
   const handleLoadMoreCols = useCallback(() => {
-    setData(prevData => prevData.map(row => [...row, ...Array(10).fill("")]));
+    setData(prevData => {
+      if (prevData.length === 0) {
+        // If no data, create initial structure
+        return Array(INITIAL_ROWS).fill(null).map(() => Array(10).fill(""));
+      }
+      return prevData.map(row => [...row, ...Array(10).fill("")]);
+    });
   }, []);
 
   return (

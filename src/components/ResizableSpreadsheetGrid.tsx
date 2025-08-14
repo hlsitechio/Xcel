@@ -22,6 +22,8 @@ export const ResizableSpreadsheetGrid = ({
 }: ResizableSpreadsheetGridProps) => {
   const [columnWidths, setColumnWidths] = useState<number[]>([]);
   const [rowHeights, setRowHeights] = useState<number[]>([]);
+  const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>([]);
+  const [baseRowHeights, setBaseRowHeights] = useState<number[]>([]);
   const gridRef = useRef<HTMLDivElement>(null);
   const [visibleRange, setVisibleRange] = useState({ 
     startRow: 0, 
@@ -30,31 +32,31 @@ export const ResizableSpreadsheetGrid = ({
     endCol: 26 
   });
 
-  // Initialize column widths and row heights
+  // Initialize base column widths and row heights (without zoom)
   useEffect(() => {
     const cols = Math.max(data[0]?.length || 26, 26);
     const rows = Math.max(data.length, 100);
     
-    if (columnWidths.length < cols) {
-      setColumnWidths(prev => [
+    if (baseColumnWidths.length < cols) {
+      setBaseColumnWidths(prev => [
         ...prev,
-        ...Array(cols - prev.length).fill(120 * zoom)
+        ...Array(cols - prev.length).fill(120)
       ]);
     }
     
-    if (rowHeights.length < rows) {
-      setRowHeights(prev => [
+    if (baseRowHeights.length < rows) {
+      setBaseRowHeights(prev => [
         ...prev,
-        ...Array(rows - prev.length).fill(32 * zoom)
+        ...Array(rows - prev.length).fill(32)
       ]);
     }
-  }, [data, zoom, columnWidths.length, rowHeights.length]);
+  }, [data, baseColumnWidths.length, baseRowHeights.length]);
 
-  // Update sizes when zoom changes
+  // Update actual sizes when zoom or base sizes change
   useEffect(() => {
-    setColumnWidths(prev => prev.map(width => Math.max(80 * zoom, width * zoom / (zoom || 1))));
-    setRowHeights(prev => prev.map(height => Math.max(24 * zoom, height * zoom / (zoom || 1))));
-  }, [zoom]);
+    setColumnWidths(baseColumnWidths.map(width => width * zoom));
+    setRowHeights(baseRowHeights.map(height => height * zoom));
+  }, [baseColumnWidths, baseRowHeights, zoom]);
 
   // Infinite scroll handling
   useEffect(() => {
@@ -63,7 +65,7 @@ export const ResizableSpreadsheetGrid = ({
       
       const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = gridRef.current;
       
-      // Calculate visible rows and columns based on scroll position
+      // Calculate visible rows and columns based on scroll position (accounting for zoom)
       let currentRow = 0;
       let currentHeight = 32 * zoom; // header height
       
@@ -80,15 +82,25 @@ export const ResizableSpreadsheetGrid = ({
         currentCol++;
       }
       
-      const visibleRows = Math.ceil(clientHeight / (32 * zoom)) + 5;
-      const visibleCols = Math.ceil(clientWidth / (120 * zoom)) + 5;
+      const visibleRows = Math.ceil(clientHeight / (32 * zoom)) + 10;
+      const visibleCols = Math.ceil(clientWidth / (120 * zoom)) + 10;
       
-      setVisibleRange({
-        startRow: Math.max(0, currentRow - 2),
-        endRow: Math.min(data.length + 10, currentRow + visibleRows),
-        startCol: Math.max(0, currentCol - 2),
-        endCol: Math.min((data[0]?.length || 26) + 10, currentCol + visibleCols)
-      });
+      const newVisibleRange = {
+        startRow: Math.max(0, currentRow - 5),
+        endRow: Math.min(data.length + 20, currentRow + visibleRows),
+        startCol: Math.max(0, currentCol - 5),
+        endCol: Math.min((data[0]?.length || 26) + 20, currentCol + visibleCols)
+      };
+      
+      // Only update if the range has changed significantly
+      if (
+        Math.abs(newVisibleRange.startRow - visibleRange.startRow) > 2 ||
+        Math.abs(newVisibleRange.endRow - visibleRange.endRow) > 2 ||
+        Math.abs(newVisibleRange.startCol - visibleRange.startCol) > 2 ||
+        Math.abs(newVisibleRange.endCol - visibleRange.endCol) > 2
+      ) {
+        setVisibleRange(newVisibleRange);
+      }
       
       // Load more data when near the end
       if (scrollTop > scrollHeight - clientHeight - 1000) {
@@ -107,20 +119,22 @@ export const ResizableSpreadsheetGrid = ({
       
       return () => gridElement.removeEventListener('scroll', handleScroll);
     }
-  }, [data, rowHeights, columnWidths, zoom, onLoadMoreRows, onLoadMoreCols]);
+  }, [data, rowHeights, columnWidths, zoom, onLoadMoreRows, onLoadMoreCols, visibleRange]);
 
   const handleColumnResize = useCallback((colIndex: number, newWidth: number) => {
-    setColumnWidths(prev => {
+    const baseWidth = newWidth / zoom;
+    setBaseColumnWidths(prev => {
       const newWidths = [...prev];
-      newWidths[colIndex] = Math.max(50 * zoom, newWidth);
+      newWidths[colIndex] = Math.max(50, baseWidth);
       return newWidths;
     });
   }, [zoom]);
 
   const handleRowResize = useCallback((rowIndex: number, newHeight: number) => {
-    setRowHeights(prev => {
+    const baseHeight = newHeight / zoom;
+    setBaseRowHeights(prev => {
       const newHeights = [...prev];
-      newHeights[rowIndex] = Math.max(20 * zoom, newHeight);
+      newHeights[rowIndex] = Math.max(20, baseHeight);
       return newHeights;
     });
   }, [zoom]);
@@ -145,16 +159,12 @@ export const ResizableSpreadsheetGrid = ({
     <div 
       ref={gridRef}
       className="flex-1 overflow-auto bg-background relative"
-      style={{ 
-        transform: `scale(${zoom})`,
-        transformOrigin: 'top left'
-      }}
     >
       <div 
         className="relative"
         style={{ 
-          width: totalWidth / zoom, 
-          height: totalHeight / zoom,
+          width: totalWidth, 
+          height: totalHeight,
           minWidth: '100%',
           minHeight: '100%'
         }}
