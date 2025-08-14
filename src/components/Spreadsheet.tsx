@@ -1,13 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { FileMenu } from "./FileMenu";
-import { RibbonTabs } from "./ribbon/RibbonTabs";
 import { FormulaBar } from "./FormulaBar";
 import { ResizableSpreadsheetGrid } from "./ResizableSpreadsheetGrid";
+import { ResponsiveLayout } from "./ResponsiveLayout";
+import { AdaptiveToolbar } from "./AdaptiveToolbar";
 import { FormulaParser } from "@/utils/formulaParser";
 import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { Download, Plus, ZoomIn, ZoomOut, Menu } from "lucide-react";
-import { MobileFileMenu } from "./MobileFileMenu";
 
 const INITIAL_ROWS = 100;
 const INITIAL_COLS = 26;
@@ -242,39 +240,22 @@ export const Spreadsheet = () => {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
-      <div className="hidden md:block">
-        <FileMenu onExportCSV={exportCSV} />
-      </div>
+    <ResponsiveLayout>
+      {/* File Menu - Always visible */}
+      <FileMenu onExportCSV={exportCSV} />
       
-      <div className="hidden md:block">
-        <RibbonTabs
-          zoom={zoom}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onExportCSV={exportCSV}
-          onAddRow={addRow}
-          onAddColumn={addColumn}
-          selectedCell={selectedCell}
-        />
-      </div>
+      {/* Adaptive Toolbar - Shows full ribbon on desktop, compact on mobile */}
+      <AdaptiveToolbar
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onExportCSV={exportCSV}
+        onAddRow={addRow}
+        onAddColumn={addColumn}
+        selectedCell={selectedCell}
+      />
       
-      <div className="md:hidden bg-card border-b border-border px-4 py-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-primary">Xcel</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={exportCSV}>
-              <Download className="h-4 w-4" />
-            </Button>
-            <MobileFileMenu 
-              onExportCSV={exportCSV}
-              onAddRow={addRow}
-              onAddColumn={addColumn}
-            />
-          </div>
-        </div>
-      </div>
-      
+      {/* Formula Bar - Responsive sizing */}
       <FormulaBar
         selectedCell={selectedCell}
         cellValue={getCurrentCellValue()}
@@ -282,6 +263,7 @@ export const Spreadsheet = () => {
         onFormulaSubmit={handleFormulaSubmit}
       />
       
+      {/* Spreadsheet Grid - Adaptive sizing */}
       <ResizableSpreadsheetGrid
         data={data}
         selectedCell={selectedCell}
@@ -295,29 +277,6 @@ export const Spreadsheet = () => {
         onLoadMoreRows={handleLoadMoreRows}
         onLoadMoreCols={handleLoadMoreCols}
       />
-      
-      {/* Mobile Action Bar */}
-      <div className="md:hidden bg-card border-t border-border px-4 py-2">
-        <div className="flex items-center justify-center gap-4">
-          <Button variant="ghost" size="sm" onClick={addRow}>
-            <Plus className="h-4 w-4 mr-1" />
-            Row
-          </Button>
-          <Button variant="ghost" size="sm" onClick={addColumn}>
-            <Plus className="h-4 w-4 mr-1" />
-            Col
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" onClick={handleZoomOut}>
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="text-xs">{Math.round(zoom * 100)}%</span>
-            <Button variant="ghost" size="sm" onClick={handleZoomIn}>
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </ResponsiveLayout>
   );
 };
