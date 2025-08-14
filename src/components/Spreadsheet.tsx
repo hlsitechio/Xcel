@@ -4,6 +4,7 @@ import { FormulaBar } from "./FormulaBar";
 import { ResizableSpreadsheetGrid } from "./ResizableSpreadsheetGrid";
 import { ResponsiveLayout } from "./ResponsiveLayout";
 import { AdaptiveToolbar } from "./AdaptiveToolbar";
+import { SpreadsheetContextMenu } from "./SpreadsheetContextMenu";
 import { FormulaParser } from "@/utils/formulaParser";
 import { useToast } from "@/components/ui/use-toast";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -672,6 +673,98 @@ export const Spreadsheet = () => {
     }
   }, [clipboardData, selectedCell, data, imageData, toast, pushDataState]);
 
+  // Row and column operations
+  const handleInsertRow = useCallback(() => {
+    if (!selectedCell) return;
+    
+    const newData = [...data];
+    newData.splice(selectedCell.row, 0, Array(INITIAL_COLS).fill(""));
+    
+    const newImageData = [...imageData];
+    newImageData.splice(selectedCell.row, 0, Array(INITIAL_COLS).fill(""));
+    
+    pushDataState(newData);
+    setImageData(newImageData);
+    
+    toast({
+      title: "Row Inserted",
+      description: `New row inserted at position ${selectedCell.row + 1}`,
+    });
+  }, [selectedCell, data, imageData, pushDataState, toast]);
+
+  const handleInsertColumn = useCallback(() => {
+    if (!selectedCell) return;
+    
+    const newData = data.map(row => {
+      const newRow = [...row];
+      newRow.splice(selectedCell.col, 0, "");
+      return newRow;
+    });
+    
+    const newImageData = imageData.map(row => {
+      const newRow = [...row];
+      newRow.splice(selectedCell.col, 0, "");
+      return newRow;
+    });
+    
+    pushDataState(newData);
+    setImageData(newImageData);
+    
+    toast({
+      title: "Column Inserted",
+      description: `New column inserted at position ${String.fromCharCode(65 + selectedCell.col)}`,
+    });
+  }, [selectedCell, data, imageData, pushDataState, toast]);
+
+  const handleDeleteRow = useCallback(() => {
+    if (!selectedCell || data.length <= 1) return;
+    
+    const newData = [...data];
+    newData.splice(selectedCell.row, 1);
+    
+    const newImageData = [...imageData];
+    newImageData.splice(selectedCell.row, 1);
+    
+    pushDataState(newData);
+    setImageData(newImageData);
+    
+    toast({
+      title: "Row Deleted",
+      description: `Row ${selectedCell.row + 1} deleted`,
+    });
+  }, [selectedCell, data, imageData, pushDataState, toast]);
+
+  const handleDeleteColumn = useCallback(() => {
+    if (!selectedCell || data[0]?.length <= 1) return;
+    
+    const newData = data.map(row => {
+      const newRow = [...row];
+      newRow.splice(selectedCell.col, 1);
+      return newRow;
+    });
+    
+    const newImageData = imageData.map(row => {
+      const newRow = [...row];
+      newRow.splice(selectedCell.col, 1);
+      return newRow;
+    });
+    
+    pushDataState(newData);
+    setImageData(newImageData);
+    
+    toast({
+      title: "Column Deleted",
+      description: `Column ${String.fromCharCode(65 + selectedCell.col)} deleted`,
+    });
+  }, [selectedCell, data, imageData, pushDataState, toast]);
+
+  const handleFormatCells = useCallback(() => {
+    toast({
+      title: "Format Cells",
+      description: "Cell formatting dialog would open here",
+    });
+  }, [toast]);
+
   // Initialize keyboard shortcuts with all functionality
   useKeyboardShortcuts({
     selectedCell,
@@ -718,24 +811,37 @@ export const Spreadsheet = () => {
         onFormulaSubmit={handleFormulaSubmit}
       />
       
-      {/* Spreadsheet Grid - Adaptive sizing */}
-      <ResizableSpreadsheetGrid
-        ref={gridRef}
-        data={data}
-        selectedCell={selectedCell}
-        selectedRanges={selectedRanges}
-        onCellChange={handleCellChange}
-        onCellSelect={handleCellSelect}
-        onCellMouseDown={handleCellMouseDown}
-        onCellMouseOver={handleCellMouseOver}
-        isCellSelected={isCellSelected}
-        zoom={zoom}
-        onLoadMoreRows={handleLoadMoreRows}
-        onLoadMoreCols={handleLoadMoreCols}
-        imageData={imageData}
-        onDeleteSelectedCells={handleDeleteSelectedCells}
-        onEditingValueChange={setCurrentEditingValue}
-      />
+      {/* Spreadsheet Grid with Context Menu - Adaptive sizing */}
+      <SpreadsheetContextMenu
+        onCopy={handleCopy}
+        onCut={handleCut}
+        onPaste={handlePaste}
+        onDelete={handleDeleteSelectedCells}
+        onInsertRow={handleInsertRow}
+        onInsertColumn={handleInsertColumn}
+        onDeleteRow={handleDeleteRow}
+        onDeleteColumn={handleDeleteColumn}
+        onFormatCells={handleFormatCells}
+        onUndo={undo}
+      >
+        <ResizableSpreadsheetGrid
+          ref={gridRef}
+          data={data}
+          selectedCell={selectedCell}
+          selectedRanges={selectedRanges}
+          onCellChange={handleCellChange}
+          onCellSelect={handleCellSelect}
+          onCellMouseDown={handleCellMouseDown}
+          onCellMouseOver={handleCellMouseOver}
+          isCellSelected={isCellSelected}
+          zoom={zoom}
+          onLoadMoreRows={handleLoadMoreRows}
+          onLoadMoreCols={handleLoadMoreCols}
+          imageData={imageData}
+          onDeleteSelectedCells={handleDeleteSelectedCells}
+          onEditingValueChange={setCurrentEditingValue}
+        />
+      </SpreadsheetContextMenu>
     </ResponsiveLayout>
   );
 };
