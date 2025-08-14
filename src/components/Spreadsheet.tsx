@@ -483,13 +483,18 @@ export const Spreadsheet = () => {
   }, [data]);
 
   const handleSelectColumn = useCallback((col: number) => {
+    console.log('Selecting column:', col); // Debug log
     setSelectedRanges([{
       startRow: 0,
       startCol: col,
       endRow: data.length - 1,
       endCol: col
     }]);
-  }, [data]);
+    toast({
+      title: "Column Selected",
+      description: `Column ${String.fromCharCode(65 + col)} selected`,
+    });
+  }, [data, toast]);
 
   // Copy functionality
   const handleCopy = useCallback(() => {

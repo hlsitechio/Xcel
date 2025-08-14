@@ -35,11 +35,13 @@ export class KeyboardManager {
     // Always allow copy/paste/cut shortcuts
     const alwaysAllowed = ['c', 'v', 'x', 'z', 'y'];
     const isAlwaysAllowed = alwaysAllowed.includes(event.key.toLowerCase()) && (event.ctrlKey || event.metaKey);
-    // Always allow arrow key navigation
-    const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    // Always allow arrow key navigation and selection keys
+    const navigationKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' '];
     const isNavigationKey = navigationKeys.includes(event.key);
+    // Special handling for space key with modifiers (Ctrl+Space, Shift+Space)
+    const isSpaceWithModifier = event.key === ' ' && (event.ctrlKey || event.shiftKey);
     
-    if (isInput && !allowedInInput.includes(event.key) && !isAlwaysAllowed && !isNavigationKey) {
+    if (isInput && !allowedInInput.includes(event.key) && !isAlwaysAllowed && !isNavigationKey && !isSpaceWithModifier) {
       return false;
     }
 
