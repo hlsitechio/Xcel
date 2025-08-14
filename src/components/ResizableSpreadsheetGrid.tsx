@@ -20,10 +20,15 @@ export const ResizableSpreadsheetGrid = ({
   onLoadMoreRows,
   onLoadMoreCols,
 }: ResizableSpreadsheetGridProps) => {
-  const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>([]);
-  const [baseRowHeights, setBaseRowHeights] = useState<number[]>([]);
+  // Base state for dimensions (without zoom applied)
+  const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
+    Array(Math.max(data[0]?.length || 26, 26)).fill(120)
+  );
+  const [baseRowHeights, setBaseRowHeights] = useState<number[]>(() => 
+    Array(Math.max(data.length, 100)).fill(32)
+  );
+  
   const gridRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const lastVisibleRangeRef = useRef({ startRow: 0, endRow: 50, startCol: 0, endCol: 26 });
   const [visibleRange, setVisibleRange] = useState({ 
     startRow: 0, 
@@ -32,7 +37,7 @@ export const ResizableSpreadsheetGrid = ({
     endCol: 26 
   });
 
-  // Memoize scaled dimensions
+  // Calculate scaled dimensions
   const columnWidths = useMemo(() => 
     baseColumnWidths.map(width => width * zoom), 
     [baseColumnWidths, zoom]
@@ -43,7 +48,7 @@ export const ResizableSpreadsheetGrid = ({
     [baseRowHeights, zoom]
   );
 
-  // Initialize base column widths and row heights (without zoom)
+  // Update base dimensions when data changes
   useEffect(() => {
     const cols = Math.max(data[0]?.length || 26, 26);
     const rows = Math.max(data.length, 100);
@@ -61,7 +66,7 @@ export const ResizableSpreadsheetGrid = ({
       }
       return prev;
     });
-  }, [data, baseColumnWidths.length, baseRowHeights.length]);
+  }, [data]);
 
   // Stable scroll handling to prevent flashing
   useEffect(() => {
@@ -70,15 +75,15 @@ export const ResizableSpreadsheetGrid = ({
       
       const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = gridRef.current;
       
-      // Calculate visible range with larger buffer to prevent constant updates
+      // Calculate visible range with generous buffers
       const rowHeight = 32 * zoom;
       const colWidth = 120 * zoom;
       const headerHeight = 32 * zoom;
       const headerWidth = 60 * zoom;
       
-      // Calculate with more generous buffers
-      const bufferRows = 20;
-      const bufferCols = 10;
+      // Very conservative buffer to prevent flashing
+      const bufferRows = 25;
+      const bufferCols = 15;
       
       const startRow = Math.max(0, Math.floor((scrollTop - headerHeight) / rowHeight) - bufferRows);
       const endRow = Math.min(data.length + 50, startRow + Math.ceil(clientHeight / rowHeight) + bufferRows * 2);
@@ -89,35 +94,34 @@ export const ResizableSpreadsheetGrid = ({
       const newRange = { startRow, endRow, startCol, endCol };
       const lastRange = lastVisibleRangeRef.current;
       
-      // Only update if there's a really significant change to prevent flashing
+      // Very high threshold for updates to eliminate flashing
       const shouldUpdate = 
-        Math.abs(newRange.startRow - lastRange.startRow) > 10 ||
-        Math.abs(newRange.endRow - lastRange.endRow) > 10 ||
-        Math.abs(newRange.startCol - lastRange.startCol) > 5 ||
-        Math.abs(newRange.endCol - lastRange.endCol) > 5;
+        Math.abs(newRange.startRow - lastRange.startRow) > 15 ||
+        Math.abs(newRange.endRow - lastRange.endRow) > 15 ||
+        Math.abs(newRange.startCol - lastRange.startCol) > 8 ||
+        Math.abs(newRange.endCol - lastRange.endCol) > 8;
       
       if (shouldUpdate) {
         lastVisibleRangeRef.current = newRange;
         setVisibleRange(newRange);
       }
       
-      // Load more data when near the end (with very large buffer)
-      if (scrollTop > scrollHeight - clientHeight - 3000) {
+      // Load more data when near the end
+      if (scrollTop > scrollHeight - clientHeight - 4000) {
         onLoadMoreRows();
       }
       
-      if (scrollLeft > scrollWidth - clientWidth - 3000) {
+      if (scrollLeft > scrollWidth - clientWidth - 4000) {
         onLoadMoreCols();
       }
     };
 
     const gridElement = gridRef.current;
     if (gridElement) {
-      // Use passive scrolling for better performance
       gridElement.addEventListener('scroll', handleScroll, { passive: true });
       
-      // Throttled initial call
-      const timeoutId = setTimeout(handleScroll, 100);
+      // Initial call after a delay to prevent immediate updates
+      const timeoutId = setTimeout(handleScroll, 200);
       
       return () => {
         gridElement.removeEventListener('scroll', handleScroll);
@@ -206,7 +210,7 @@ export const ResizableSpreadsheetGrid = ({
             onRowResize={handleRowResize}
           />
           
-          {/* Column headers - stable rendering */}
+          {/* Column headers */}
           {Array.from({ length: Math.min(visibleRange.endCol - visibleRange.startCol, 50) }, (_, i) => {
             const colIndex = visibleRange.startCol + i;
             return (
@@ -228,7 +232,7 @@ export const ResizableSpreadsheetGrid = ({
           })}
         </div>
 
-        {/* Data rows - stable rendering without excessive memoization */}
+        {/* Data rows */}
         {Array.from({ length: Math.min(visibleRange.endRow - visibleRange.startRow, 100) }, (_, i) => {
           const rowIndex = visibleRange.startRow + i;
           return (
