@@ -10,7 +10,9 @@ interface ResizableSpreadsheetCellProps {
   width: number;
   height: number;
   onValueChange: (row: number, col: number, value: string) => void;
-  onCellSelect: (row: number, col: number) => void;
+  onCellSelect: (row: number, col: number, event?: React.MouseEvent) => void;
+  onCellMouseDown?: (row: number, col: number, event?: React.MouseEvent) => void;
+  onCellMouseOver?: (row: number, col: number) => void;
   onColumnResize: (colIndex: number, newWidth: number) => void;
   onRowResize: (rowIndex: number, newHeight: number) => void;
 }
@@ -25,6 +27,8 @@ export const ResizableSpreadsheetCell = ({
   height,
   onValueChange,
   onCellSelect,
+  onCellMouseDown,
+  onCellMouseOver,
   onColumnResize,
   onRowResize,
 }: ResizableSpreadsheetCellProps) => {
@@ -65,13 +69,25 @@ export const ResizableSpreadsheetCell = ({
     setIsEditing(false);
   };
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (!isResizing) {
-      onCellSelect(rowIndex, colIndex);
+      onCellSelect(rowIndex, colIndex, e);
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent, type: 'column' | 'row') => {
+  const handleCellMouseDown = (e: React.MouseEvent) => {
+    if (!isHeader && onCellMouseDown) {
+      onCellMouseDown(rowIndex, colIndex, e);
+    }
+  };
+
+  const handleCellMouseOver = () => {
+    if (!isHeader && onCellMouseOver) {
+      onCellMouseOver(rowIndex, colIndex);
+    }
+  };
+
+  const handleResizeMouseDown = (e: React.MouseEvent, type: 'column' | 'row') => {
     if (!isHeader) return;
     
     e.preventDefault();
@@ -116,7 +132,7 @@ export const ResizableSpreadsheetCell = ({
         {colIndex >= 0 && (
           <div
             className="absolute right-0 top-0 w-2 h-full cursor-col-resize hover:bg-primary/20"
-            onMouseDown={(e) => handleMouseDown(e, 'column')}
+            onMouseDown={(e) => handleResizeMouseDown(e, 'column')}
           />
         )}
         
@@ -124,7 +140,7 @@ export const ResizableSpreadsheetCell = ({
         {rowIndex >= 0 && (
           <div
             className="absolute bottom-0 left-0 w-full h-2 cursor-row-resize hover:bg-primary/20"
-            onMouseDown={(e) => handleMouseDown(e, 'row')}
+            onMouseDown={(e) => handleResizeMouseDown(e, 'row')}
           />
         )}
       </div>
@@ -135,11 +151,13 @@ export const ResizableSpreadsheetCell = ({
     <div
       ref={cellRef}
       className={cn(
-        "relative border-r border-b border-cell-border cursor-cell transition-colors flex items-center",
+        "relative border-r border-b border-cell-border cursor-cell transition-colors flex items-center select-none",
         isSelected ? "bg-cell-selected ring-1 ring-primary" : "hover:bg-cell-hover"
       )}
       style={{ width, height, minWidth: width, minHeight: height }}
       onClick={handleClick}
+      onMouseDown={handleCellMouseDown}
+      onMouseOver={handleCellMouseOver}
       onDoubleClick={handleDoubleClick}
     >
       {isEditing ? (

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { FileMenu } from "./FileMenu";
 import { RibbonTabs } from "./ribbon/RibbonTabs";
 import { FormulaBar } from "./FormulaBar";
@@ -17,6 +17,14 @@ export const Spreadsheet = () => {
   );
   
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
+  const [selectedRanges, setSelectedRanges] = useState<Array<{
+    startRow: number;
+    startCol: number;
+    endRow: number;
+    endCol: number;
+  }>>([]);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{ row: number; col: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const { toast } = useToast();
 
@@ -53,11 +61,79 @@ export const Spreadsheet = () => {
     });
   }, [toast]);
 
-  const handleCellSelect = useCallback((row: number, col: number) => {
+  const handleCellSelect = useCallback((row: number, col: number, event?: React.MouseEvent) => {
     if (row >= 0 && col >= 0) {
+      const isCtrlKey = event?.ctrlKey || event?.metaKey;
+      const isShiftKey = event?.shiftKey;
+      
+      if (isCtrlKey) {
+        // Add new single-cell range to selection
+        setSelectedRanges(prev => [...prev, {
+          startRow: row,
+          startCol: col,
+          endRow: row,
+          endCol: col
+        }]);
+      } else if (isShiftKey && selectedCell) {
+        // Extend selection from last selected cell
+        const newRange = {
+          startRow: Math.min(selectedCell.row, row),
+          startCol: Math.min(selectedCell.col, col),
+          endRow: Math.max(selectedCell.row, row),
+          endCol: Math.max(selectedCell.col, col)
+        };
+        setSelectedRanges([newRange]);
+      } else {
+        // Normal single cell selection
+        setSelectedRanges([{
+          startRow: row,
+          startCol: col,
+          endRow: row,
+          endCol: col
+        }]);
+      }
+      
       setSelectedCell({ row, col });
     }
+  }, [selectedCell]);
+
+  const handleCellMouseDown = useCallback((row: number, col: number, event?: React.MouseEvent) => {
+    if (row >= 0 && col >= 0 && !event?.ctrlKey && !event?.metaKey && !event?.shiftKey) {
+      setIsSelecting(true);
+      setSelectionStart({ row, col });
+      handleCellSelect(row, col, event);
+    }
+  }, [handleCellSelect]);
+
+  const handleCellMouseOver = useCallback((row: number, col: number) => {
+    if (isSelecting && selectionStart) {
+      const newRange = {
+        startRow: Math.min(selectionStart.row, row),
+        startCol: Math.min(selectionStart.col, col),
+        endRow: Math.max(selectionStart.row, row),
+        endCol: Math.max(selectionStart.col, col)
+      };
+      setSelectedRanges([newRange]);
+    }
+  }, [isSelecting, selectionStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsSelecting(false);
+    setSelectionStart(null);
   }, []);
+
+  // Add global mouse up listener
+  useEffect(() => {
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => document.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseUp]);
+
+  const isCellSelected = useCallback((row: number, col: number) => {
+    return selectedRanges.some(range => 
+      row >= range.startRow && row <= range.endRow &&
+      col >= range.startCol && col <= range.endCol
+    );
+  }, [selectedRanges]);
 
   const handleFormulaSubmit = useCallback((formula: string) => {
     if (selectedCell) {
@@ -121,6 +197,21 @@ export const Spreadsheet = () => {
     return data[selectedCell.row]?.[selectedCell.col] || "";
   }, [selectedCell, data]);
 
+  const getSelectedCellsInfo = useCallback(() => {
+    if (selectedRanges.length === 0) return "";
+    
+    if (selectedRanges.length === 1) {
+      const range = selectedRanges[0];
+      if (range.startRow === range.endRow && range.startCol === range.endCol) {
+        return `${String.fromCharCode(65 + range.startCol)}${range.startRow + 1}`;
+      } else {
+        return `${String.fromCharCode(65 + range.startCol)}${range.startRow + 1}:${String.fromCharCode(65 + range.endCol)}${range.endRow + 1}`;
+      }
+    }
+    
+    return `${selectedRanges.length} ranges selected`;
+  }, [selectedRanges]);
+
   const handleZoomIn = useCallback(() => {
     setZoom(prev => Math.min(2, prev + 0.1));
   }, []);
@@ -164,14 +255,19 @@ export const Spreadsheet = () => {
       <FormulaBar
         selectedCell={selectedCell}
         cellValue={getCurrentCellValue()}
+        selectedInfo={getSelectedCellsInfo()}
         onFormulaSubmit={handleFormulaSubmit}
       />
       
       <ResizableSpreadsheetGrid
         data={data}
         selectedCell={selectedCell}
+        selectedRanges={selectedRanges}
         onCellChange={handleCellChange}
         onCellSelect={handleCellSelect}
+        onCellMouseDown={handleCellMouseDown}
+        onCellMouseOver={handleCellMouseOver}
+        isCellSelected={isCellSelected}
         zoom={zoom}
         onLoadMoreRows={handleLoadMoreRows}
         onLoadMoreCols={handleLoadMoreCols}

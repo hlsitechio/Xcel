@@ -6,10 +6,11 @@ import { Calculator, Check, X } from "lucide-react";
 interface FormulaBarProps {
   selectedCell: { row: number; col: number } | null;
   cellValue: string;
+  selectedInfo?: string;
   onFormulaSubmit: (formula: string) => void;
 }
 
-export const FormulaBar = ({ selectedCell, cellValue, onFormulaSubmit }: FormulaBarProps) => {
+export const FormulaBar = ({ selectedCell, cellValue, selectedInfo, onFormulaSubmit }: FormulaBarProps) => {
   const [formula, setFormula] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
@@ -45,10 +46,10 @@ export const FormulaBar = ({ selectedCell, cellValue, onFormulaSubmit }: Formula
 
   return (
     <div className="flex items-center gap-3 p-3 border-b border-border bg-muted/30">
-      <div className="flex items-center gap-2 min-w-20">
-        <Calculator className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">
-          {getCellAddress()}
+      <div className="flex items-center gap-2 px-2 py-1 bg-muted/30 border-r border-border min-w-[120px]">
+        <span className="text-xs font-medium text-muted-foreground">Cell:</span>
+        <span className="text-sm font-mono">
+          {selectedInfo || getCellAddress()}
         </span>
       </div>
 

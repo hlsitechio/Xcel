@@ -4,8 +4,17 @@ import { ResizableSpreadsheetCell } from "./ResizableSpreadsheetCell";
 interface ResizableSpreadsheetGridProps {
   data: string[][];
   selectedCell: { row: number; col: number } | null;
+  selectedRanges: Array<{
+    startRow: number;
+    startCol: number;
+    endRow: number;
+    endCol: number;
+  }>;
   onCellChange: (row: number, col: number, value: string) => void;
-  onCellSelect: (row: number, col: number) => void;
+  onCellSelect: (row: number, col: number, event?: React.MouseEvent) => void;
+  onCellMouseDown: (row: number, col: number, event?: React.MouseEvent) => void;
+  onCellMouseOver: (row: number, col: number) => void;
+  isCellSelected: (row: number, col: number) => boolean;
   zoom: number;
   onLoadMoreRows: () => void;
   onLoadMoreCols: () => void;
@@ -14,8 +23,12 @@ interface ResizableSpreadsheetGridProps {
 export const ResizableSpreadsheetGrid = ({
   data,
   selectedCell,
+  selectedRanges,
   onCellChange,
   onCellSelect,
+  onCellMouseDown,
+  onCellMouseOver,
+  isCellSelected,
   zoom,
   onLoadMoreRows,
   onLoadMoreCols,
@@ -226,6 +239,8 @@ export const ResizableSpreadsheetGrid = ({
             height={32 * zoom}
             onValueChange={onCellChange}
             onCellSelect={onCellSelect}
+            onCellMouseDown={onCellMouseDown}
+            onCellMouseOver={onCellMouseOver}
             onColumnResize={handleColumnResize}
             onRowResize={handleRowResize}
           />
@@ -236,20 +251,22 @@ export const ResizableSpreadsheetGrid = ({
             if (colIndex >= (data[0]?.length || 26)) return null;
             
             return (
-              <ResizableSpreadsheetCell
-                key={`header-${colIndex}`}
-                value={getColumnHeader(colIndex)}
-                rowIndex={-1}
-                colIndex={colIndex}
-                isSelected={false}
-                isHeader={true}
-                width={columnWidths[colIndex] || (120 * zoom)}
-                height={32 * zoom}
-                onValueChange={onCellChange}
-                onCellSelect={onCellSelect}
-                onColumnResize={handleColumnResize}
-                onRowResize={handleRowResize}
-              />
+                <ResizableSpreadsheetCell
+                  key={`header-${colIndex}`}
+                  value={getColumnHeader(colIndex)}
+                  rowIndex={-1}
+                  colIndex={colIndex}
+                  isSelected={false}
+                  isHeader={true}
+                  width={columnWidths[colIndex] || (120 * zoom)}
+                  height={32 * zoom}
+                  onValueChange={onCellChange}
+                  onCellSelect={onCellSelect}
+                  onCellMouseDown={onCellMouseDown}
+                  onCellMouseOver={onCellMouseOver}
+                  onColumnResize={handleColumnResize}
+                  onRowResize={handleRowResize}
+                />
             );
           })}
         </div>
@@ -272,6 +289,8 @@ export const ResizableSpreadsheetGrid = ({
                 height={rowHeights[rowIndex] || (32 * zoom)}
                 onValueChange={onCellChange}
                 onCellSelect={onCellSelect}
+                onCellMouseDown={onCellMouseDown}
+                onCellMouseOver={onCellMouseOver}
                 onColumnResize={handleColumnResize}
                 onRowResize={handleRowResize}
               />
@@ -287,13 +306,13 @@ export const ResizableSpreadsheetGrid = ({
                     value={data[rowIndex]?.[colIndex] || ""}
                     rowIndex={rowIndex}
                     colIndex={colIndex}
-                    isSelected={
-                      selectedCell?.row === rowIndex && selectedCell?.col === colIndex
-                    }
+                    isSelected={isCellSelected(rowIndex, colIndex)}
                     width={columnWidths[colIndex] || (120 * zoom)}
                     height={rowHeights[rowIndex] || (32 * zoom)}
                     onValueChange={onCellChange}
                     onCellSelect={onCellSelect}
+                    onCellMouseDown={onCellMouseDown}
+                    onCellMouseOver={onCellMouseOver}
                     onColumnResize={handleColumnResize}
                     onRowResize={handleRowResize}
                   />
