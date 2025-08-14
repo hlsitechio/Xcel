@@ -7,16 +7,26 @@ import { AdaptiveToolbar } from "./AdaptiveToolbar";
 import { FormulaParser } from "@/utils/formulaParser";
 import { useToast } from "@/components/ui/use-toast";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useUndoRedo } from "@/hooks/useUndoRedo";
 
 const INITIAL_ROWS = 100;
 const INITIAL_COLS = 26;
 
 export const Spreadsheet = () => {
-  const [data, setData] = useState<string[][]>(() =>
-    Array(INITIAL_ROWS)
-      .fill(null)
-      .map(() => Array(INITIAL_COLS).fill(""))
-  );
+  const initialData = Array(INITIAL_ROWS)
+    .fill(null)
+    .map(() => Array(INITIAL_COLS).fill(""));
+  
+  // Undo/Redo state management
+  const {
+    currentState: data,
+    pushState: pushDataState,
+    undo,
+    redo,
+    canUndo,
+    canRedo
+  } = useUndoRedo(initialData);
+
   const [imageData, setImageData] = useState<string[][]>([]);
   
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
@@ -33,49 +43,48 @@ export const Spreadsheet = () => {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const handleCellChange = useCallback((row: number, col: number, value: string) => {
-    setData(prevData => {
-      const newData = prevData.map(r => [...r]);
-      
-      // Ensure the data array is large enough
-      while (newData.length <= row) {
-        newData.push(Array(newData[0]?.length || INITIAL_COLS).fill(""));
-      }
-      while (newData[row].length <= col) {
-        newData[row].push("");
-      }
-      
-      // If value is empty and there's image data, clear the image data too
-      if (value === "" && imageData[row]?.[col]) {
-        setImageData(prevImageData => {
-          const newImageData = [...prevImageData];
-          if (newImageData[row]) {
-            newImageData[row] = [...newImageData[row]];
-            newImageData[row][col] = "";
-          }
-          return newImageData;
+    const newData = data.map(r => [...r]);
+    
+    // Ensure the data array is large enough
+    while (newData.length <= row) {
+      newData.push(Array(newData[0]?.length || INITIAL_COLS).fill(""));
+    }
+    while (newData[row].length <= col) {
+      newData[row].push("");
+    }
+    
+    // If value is empty and there's image data, clear the image data too
+    if (value === "" && imageData[row]?.[col]) {
+      setImageData(prevImageData => {
+        const newImageData = [...prevImageData];
+        if (newImageData[row]) {
+          newImageData[row] = [...newImageData[row]];
+          newImageData[row][col] = "";
+        }
+        return newImageData;
+      });
+    }
+    
+    // Evaluate formula if it starts with =
+    if (value.startsWith("=")) {
+      try {
+        const result = FormulaParser.evaluate(value, newData);
+        newData[row][col] = result;
+      } catch (error) {
+        newData[row][col] = "#ERROR";
+        toast({
+          title: "Formula Error",
+          description: "Invalid formula syntax",
+          variant: "destructive",
         });
       }
-      
-      // Evaluate formula if it starts with =
-      if (value.startsWith("=")) {
-        try {
-          const result = FormulaParser.evaluate(value, newData);
-          newData[row][col] = result;
-        } catch (error) {
-          newData[row][col] = "#ERROR";
-          toast({
-            title: "Formula Error",
-            description: "Invalid formula syntax",
-            variant: "destructive",
-          });
-        }
-      } else {
-        newData[row][col] = value;
-      }
-      
-      return newData;
-    });
-  }, [toast, imageData]);
+    } else {
+      newData[row][col] = value;
+    }
+    
+    // Push to undo history
+    pushDataState(newData);
+  }, [data, imageData, toast, pushDataState]);
 
   const handleCellSelect = useCallback((row: number, col: number, event?: React.MouseEvent) => {
     if (row >= 0 && col >= 0) {
@@ -158,32 +167,33 @@ export const Spreadsheet = () => {
   }, [selectedCell, handleCellChange]);
 
   const addRow = useCallback(() => {
-    setData(prevData => {
-      const newData = [
-        ...prevData,
-        Array(prevData[0]?.length || INITIAL_COLS).fill("")
-      ];
-      return newData;
-    });
+    const newData = [
+      ...data,
+      Array(data[0]?.length || INITIAL_COLS).fill("")
+    ];
+    pushDataState(newData);
+    
     toast({
       title: "Row Added",
       description: "New row added successfully",
     });
-  }, [toast]);
+  }, [data, pushDataState, toast]);
 
   const addColumn = useCallback(() => {
-    setData(prevData => {
-      if (prevData.length === 0) {
-        // If no data, create initial structure
-        return Array(INITIAL_ROWS).fill(null).map(() => Array(1).fill(""));
-      }
-      return prevData.map(row => [...row, ""]);
-    });
+    let newData;
+    if (data.length === 0) {
+      // If no data, create initial structure
+      newData = Array(INITIAL_ROWS).fill(null).map(() => Array(1).fill(""));
+    } else {
+      newData = data.map(row => [...row, ""]);
+    }
+    pushDataState(newData);
+    
     toast({
       title: "Column Added", 
       description: "New column added successfully",
     });
-  }, [toast]);
+  }, [data, pushDataState, toast]);
 
   const exportCSV = useCallback(() => {
     const csvContent = data
@@ -237,44 +247,42 @@ export const Spreadsheet = () => {
   }, []);
 
   const handleLoadMoreRows = useCallback(() => {
-    setData(prevData => {
-      const currentCols = prevData[0]?.length || INITIAL_COLS;
-      const newRows = Array(50).fill(null).map(() => Array(currentCols).fill(""));
-      return [...prevData, ...newRows];
-    });
-  }, []);
+    const currentCols = data[0]?.length || INITIAL_COLS;
+    const newRows = Array(50).fill(null).map(() => Array(currentCols).fill(""));
+    const newData = [...data, ...newRows];
+    pushDataState(newData);
+  }, [data, pushDataState]);
 
   const handleLoadMoreCols = useCallback(() => {
-    setData(prevData => {
-      if (prevData.length === 0) {
-        // If no data, create initial structure
-        return Array(INITIAL_ROWS).fill(null).map(() => Array(10).fill(""));
-      }
-      return prevData.map(row => [...row, ...Array(10).fill("")]);
-    });
-  }, []);
+    let newData;
+    if (data.length === 0) {
+      // If no data, create initial structure
+      newData = Array(INITIAL_ROWS).fill(null).map(() => Array(10).fill(""));
+    } else {
+      newData = data.map(row => [...row, ...Array(10).fill("")]);
+    }
+    pushDataState(newData);
+  }, [data, pushDataState]);
 
   const handleImageUpload = useCallback((uploadedImageData: string[][], imageInfo: { width: number; height: number; cellsX: number; cellsY: number }) => {
     // Ensure data array is large enough to accommodate the image
-    setData(prevData => {
-      const newData = [...prevData];
-      
-      // Extend rows if needed
-      while (newData.length < uploadedImageData.length) {
-        const currentCols = newData[0]?.length || INITIAL_COLS;
-        newData.push(Array(currentCols).fill(""));
+    const newData = [...data];
+    
+    // Extend rows if needed
+    while (newData.length < uploadedImageData.length) {
+      const currentCols = newData[0]?.length || INITIAL_COLS;
+      newData.push(Array(currentCols).fill(""));
+    }
+    
+    // Extend columns if needed
+    const maxCols = Math.max(imageInfo.cellsX, newData[0]?.length || 0);
+    newData.forEach(row => {
+      while (row.length < maxCols) {
+        row.push("");
       }
-      
-      // Extend columns if needed
-      const maxCols = Math.max(imageInfo.cellsX, newData[0]?.length || 0);
-      newData.forEach(row => {
-        while (row.length < maxCols) {
-          row.push("");
-        }
-      });
-      
-      return newData;
     });
+    
+    pushDataState(newData);
 
     // Set the image data (ensure proper array structure)
     setImageData(prevImageData => {
@@ -301,26 +309,24 @@ export const Spreadsheet = () => {
       title: "Image Loaded",
       description: `Image split into ${imageInfo.cellsX}×${imageInfo.cellsY} cells. Press Delete to clear cell images.`,
     });
-  }, [toast]);
+  }, [data, pushDataState, toast]);
 
   const handleDeleteSelectedCells = useCallback(() => {
     if (selectedRanges.length === 0) return;
 
-    setData(prevData => {
-      const newData = prevData.map(row => [...row]);
-      
-      selectedRanges.forEach(range => {
-        for (let row = range.startRow; row <= range.endRow; row++) {
-          for (let col = range.startCol; col <= range.endCol; col++) {
-            if (newData[row] && newData[row][col] !== undefined) {
-              newData[row][col] = "";
-            }
+    const newData = data.map(row => [...row]);
+    
+    selectedRanges.forEach(range => {
+      for (let row = range.startRow; row <= range.endRow; row++) {
+        for (let col = range.startCol; col <= range.endCol; col++) {
+          if (newData[row] && newData[row][col] !== undefined) {
+            newData[row][col] = "";
           }
         }
-      });
-      
-      return newData;
+      }
     });
+    
+    pushDataState(newData);
 
     setImageData(prevImageData => {
       const newImageData = [...prevImageData];
@@ -346,7 +352,7 @@ export const Spreadsheet = () => {
       title: "Cells Cleared",
       description: `${totalCells} cell${totalCells > 1 ? 's' : ''} cleared successfully`,
     });
-  }, [selectedRanges, toast]);
+  }, [selectedRanges, data, pushDataState, toast]);
 
   // Enhanced selection functions for keyboard shortcuts
   const handleExtendSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right', toEdge?: boolean) => {
@@ -465,7 +471,7 @@ export const Spreadsheet = () => {
     }]);
   }, [data]);
 
-  // Initialize keyboard shortcuts
+  // Initialize keyboard shortcuts with undo/redo
   useKeyboardShortcuts({
     selectedCell,
     selectedRanges,
@@ -478,6 +484,8 @@ export const Spreadsheet = () => {
     onSelectAll: handleSelectAll,
     onSelectRow: handleSelectRow,
     onSelectColumn: handleSelectColumn,
+    onUndo: undo,
+    onRedo: redo,
     gridRef
   });
 
