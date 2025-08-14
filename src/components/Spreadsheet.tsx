@@ -111,15 +111,39 @@ export const Spreadsheet = () => {
       const isShiftKey = event?.shiftKey;
       
       if (isCtrlKey) {
-        // Check if this cell is already selected
-        const existingRangeIndex = selectedRanges.findIndex(range => 
-          range.startRow === row && range.startCol === col && 
-          range.endRow === row && range.endCol === col
+        // Check if this cell is within any existing range
+        const cellInRangeIndex = selectedRanges.findIndex(range => 
+          row >= range.startRow && row <= range.endRow &&
+          col >= range.startCol && col <= range.endCol
         );
         
-        if (existingRangeIndex !== -1) {
-          // Cell is already selected, remove it (deselect)
-          setSelectedRanges(prev => prev.filter((_, index) => index !== existingRangeIndex));
+        if (cellInRangeIndex !== -1) {
+          // Cell is within an existing range, remove it by creating individual cells for the rest
+          const range = selectedRanges[cellInRangeIndex];
+          const newRanges: typeof selectedRanges = [];
+          
+          // Create individual cell ranges for all cells in the original range except the clicked one
+          for (let r = range.startRow; r <= range.endRow; r++) {
+            for (let c = range.startCol; c <= range.endCol; c++) {
+              // Skip the cell we want to deselect
+              if (r === row && c === col) continue;
+              
+              // Add each remaining cell as an individual range
+              newRanges.push({
+                startRow: r,
+                startCol: c,
+                endRow: r,
+                endCol: c
+              });
+            }
+          }
+          
+          // Replace the original range with the new individual cell ranges
+          setSelectedRanges(prev => [
+            ...prev.slice(0, cellInRangeIndex),
+            ...newRanges,
+            ...prev.slice(cellInRangeIndex + 1)
+          ]);
         } else {
           // Add new single-cell range to selection
           setSelectedRanges(prev => [...prev, {
