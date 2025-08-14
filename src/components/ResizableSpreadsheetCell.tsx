@@ -58,15 +58,22 @@ export const ResizableSpreadsheetCell = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSave();
-    } else if (e.key === "Escape") {
-      setEditValue(value);
-      setIsEditing(false);
-    } else if (e.key === "Delete" || e.key === "Backspace") {
-      // Clear both text and image data
-      onValueChange(rowIndex, colIndex, "");
-      setEditValue("");
+    if (isEditing) {
+      if (e.key === "Enter") {
+        handleSave();
+      } else if (e.key === "Escape") {
+        setEditValue(value);
+        setIsEditing(false);
+      }
+    } else {
+      // Handle keys when not editing
+      if (e.key === "Delete" || e.key === "Backspace") {
+        // Clear both text and image data
+        onValueChange(rowIndex, colIndex, "");
+        setEditValue("");
+      } else if (e.key === "Enter" || e.key === "F2") {
+        setIsEditing(true);
+      }
     }
   };
 
@@ -78,6 +85,10 @@ export const ResizableSpreadsheetCell = ({
   const handleClick = (e: React.MouseEvent) => {
     if (!isResizing) {
       onCellSelect(rowIndex, colIndex, e);
+      // Focus the cell for keyboard events
+      if (cellRef.current) {
+        cellRef.current.focus();
+      }
     }
   };
 
@@ -165,6 +176,8 @@ export const ResizableSpreadsheetCell = ({
       onMouseDown={handleCellMouseDown}
       onMouseOver={handleCellMouseOver}
       onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={isSelected ? 0 : -1}
     >
       {isEditing ? (
         <input
