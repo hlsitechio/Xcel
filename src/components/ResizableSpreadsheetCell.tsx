@@ -63,6 +63,10 @@ export const ResizableSpreadsheetCell = ({
     } else if (e.key === "Escape") {
       setEditValue(value);
       setIsEditing(false);
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      // Clear both text and image data
+      onValueChange(rowIndex, colIndex, "");
+      setEditValue("");
     }
   };
 
@@ -176,12 +180,22 @@ export const ResizableSpreadsheetCell = ({
       ) : (
         <div className="w-full h-full relative overflow-hidden">
           {imageData ? (
-            <img
-              src={imageData}
-              alt="Cell content"
-              className="w-full h-full object-cover"
-              style={{ objectFit: 'cover', objectPosition: 'top left' }}
-            />
+            <>
+              <img
+                src={imageData}
+                alt="Cell content"
+                className="w-full h-full object-cover pointer-events-none"
+                style={{ objectFit: 'cover', objectPosition: 'top left' }}
+              />
+              {/* Overlay for interactions */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
+                {value && (
+                  <div className="px-1 text-xs text-white bg-black/70 rounded max-w-full truncate">
+                    {value}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="w-full h-full px-2 flex items-center text-sm text-foreground">
               {value}

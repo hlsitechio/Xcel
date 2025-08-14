@@ -42,6 +42,18 @@ export const Spreadsheet = () => {
         newData[row].push("");
       }
       
+      // If value is empty and there's image data, clear the image data too
+      if (value === "" && imageData[row]?.[col]) {
+        setImageData(prevImageData => {
+          const newImageData = [...prevImageData];
+          if (newImageData[row]) {
+            newImageData[row] = [...newImageData[row]];
+            newImageData[row][col] = "";
+          }
+          return newImageData;
+        });
+      }
+      
       // Evaluate formula if it starts with =
       if (value.startsWith("=")) {
         try {
@@ -61,7 +73,7 @@ export const Spreadsheet = () => {
       
       return newData;
     });
-  }, [toast]);
+  }, [toast, imageData]);
 
   const handleCellSelect = useCallback((row: number, col: number, event?: React.MouseEvent) => {
     if (row >= 0 && col >= 0) {
@@ -262,12 +274,30 @@ export const Spreadsheet = () => {
       return newData;
     });
 
-    // Set the image data
-    setImageData(uploadedImageData);
+    // Set the image data (ensure proper array structure)
+    setImageData(prevImageData => {
+      const newImageData = [...prevImageData];
+      
+      // Ensure imageData array is large enough
+      while (newImageData.length < uploadedImageData.length) {
+        newImageData.push([]);
+      }
+      
+      uploadedImageData.forEach((row, rowIndex) => {
+        if (!newImageData[rowIndex]) {
+          newImageData[rowIndex] = [];
+        }
+        row.forEach((cellImage, colIndex) => {
+          newImageData[rowIndex][colIndex] = cellImage;
+        });
+      });
+      
+      return newImageData;
+    });
     
     toast({
       title: "Image Loaded",
-      description: `Image split into ${imageInfo.cellsX}×${imageInfo.cellsY} cells`,
+      description: `Image split into ${imageInfo.cellsX}×${imageInfo.cellsY} cells. Press Delete to clear cell images.`,
     });
   }, [toast]);
 
