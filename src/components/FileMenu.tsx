@@ -30,14 +30,14 @@ export const FileMenu = ({ onExportCSV }: FileMenuProps) => {
           <Button variant="ghost" className="flex items-center gap-2 text-primary font-semibold">
             <Grid3x3 className="h-4 w-4" />
             <FileSpreadsheet className="h-5 w-5" />
-            <span>ExcelKiller</span>
+            <span>Xcel</span>
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-80">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5 text-primary" />
-              ExcelKiller
+              Xcel
             </SheetTitle>
           </SheetHeader>
           

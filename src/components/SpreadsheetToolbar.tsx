@@ -41,7 +41,7 @@ export const SpreadsheetToolbar = ({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold text-foreground">ExcelKiller</h1>
+            <h1 className="text-xl font-semibold text-foreground">Xcel</h1>
           </div>
           <div className="h-6 w-px bg-border" />
           <span className="text-sm text-muted-foreground">Professional Spreadsheet</span>
