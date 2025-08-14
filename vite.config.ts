@@ -31,12 +31,12 @@ export default defineConfig(({ mode }) => ({
       '@tanstack/react-query',
       'lucide-react',
       '@radix-ui/react-tabs',
-      '@radix-ui/react-button',
       '@radix-ui/react-select',
       '@radix-ui/react-separator',
       '@radix-ui/react-dialog',
       '@radix-ui/react-popover',
-      '@radix-ui/react-toast'
+      '@radix-ui/react-toast',
+      '@radix-ui/react-slot'
     ],
     force: false
   },
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-tabs', '@radix-ui/react-button', '@radix-ui/react-select'],
+          ui: ['@radix-ui/react-tabs', '@radix-ui/react-select', '@radix-ui/react-slot'],
           icons: ['lucide-react']
         }
       }
