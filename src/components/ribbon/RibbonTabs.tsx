@@ -20,6 +20,19 @@ interface RibbonTabsProps {
   onAddColumn: () => void;
   selectedCell: { row: number; col: number } | null;
   onImageUpload?: (imageData: string[][], imageInfo: { width: number; height: number; cellsX: number; cellsY: number }) => void;
+  // Formatting handlers
+  onFontFamilyChange: (fontFamily: string) => void;
+  onFontSizeChange: (fontSize: string) => void;
+  onBoldToggle: () => void;
+  onItalicToggle: () => void;
+  onUnderlineToggle: () => void;
+  onAlignmentChange: (alignment: 'left' | 'center' | 'right') => void;
+  onNumberFormatChange: (format: 'general' | 'percentage' | 'currency' | 'number') => void;
+  onTextColorChange: (color: string) => void;
+  onBackgroundColorChange: (color: string) => void;
+  onCopy: () => void;
+  onCut: () => void;
+  onPaste: () => void;
 }
 
 export const RibbonTabs = ({
@@ -31,6 +44,18 @@ export const RibbonTabs = ({
   onAddColumn,
   selectedCell,
   onImageUpload,
+  onFontFamilyChange,
+  onFontSizeChange,
+  onBoldToggle,
+  onItalicToggle,
+  onUnderlineToggle,
+  onAlignmentChange,
+  onNumberFormatChange,
+  onTextColorChange,
+  onBackgroundColorChange,
+  onCopy,
+  onCut,
+  onPaste,
 }: RibbonTabsProps) => {
   const [activeTab, setActiveTab] = useState("home");
 
@@ -106,6 +131,18 @@ export const RibbonTabs = ({
             onAddRow={onAddRow}
             onAddColumn={onAddColumn}
             selectedCell={selectedCell}
+            onFontFamilyChange={onFontFamilyChange}
+            onFontSizeChange={onFontSizeChange}
+            onBoldToggle={onBoldToggle}
+            onItalicToggle={onItalicToggle}
+            onUnderlineToggle={onUnderlineToggle}
+            onAlignmentChange={onAlignmentChange}
+            onNumberFormatChange={onNumberFormatChange}
+            onTextColorChange={onTextColorChange}
+            onBackgroundColorChange={onBackgroundColorChange}
+            onCopy={onCopy}
+            onCut={onCut}
+            onPaste={onPaste}
           />
         </TabsContent>
 

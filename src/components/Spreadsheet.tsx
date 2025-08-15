@@ -50,6 +50,22 @@ export const Spreadsheet = () => {
   const [selectionStart, setSelectionStart] = useState<{ row: number; col: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [currentEditingValue, setCurrentEditingValue] = useState<string>("");
+  
+  // Cell formatting state
+  const [cellFormats, setCellFormats] = useState<{
+    [key: string]: {
+      fontFamily?: string;
+      fontSize?: string;
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      textAlign?: 'left' | 'center' | 'right';
+      backgroundColor?: string;
+      textColor?: string;
+      numberFormat?: 'general' | 'percentage' | 'currency' | 'number';
+    }
+  }>({});
+  
   const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -765,6 +781,109 @@ export const Spreadsheet = () => {
     });
   }, [toast]);
 
+  // Cell formatting functions
+  const getCellKey = (row: number, col: number) => `${row}-${col}`;
+
+  const applyCellFormat = useCallback((format: Partial<typeof cellFormats[string]>) => {
+    if (selectedRanges.length === 0 && !selectedCell) return;
+
+    const newFormats = { ...cellFormats };
+    
+    if (selectedRanges.length > 0) {
+      selectedRanges.forEach(range => {
+        for (let row = range.startRow; row <= range.endRow; row++) {
+          for (let col = range.startCol; col <= range.endCol; col++) {
+            const key = getCellKey(row, col);
+            newFormats[key] = { ...newFormats[key], ...format };
+          }
+        }
+      });
+    } else if (selectedCell) {
+      const key = getCellKey(selectedCell.row, selectedCell.col);
+      newFormats[key] = { ...newFormats[key], ...format };
+    }
+
+    setCellFormats(newFormats);
+  }, [cellFormats, selectedRanges, selectedCell]);
+
+  const handleFontFamilyChange = useCallback((fontFamily: string) => {
+    applyCellFormat({ fontFamily });
+    toast({
+      title: "Font Changed",
+      description: `Font changed to ${fontFamily}`,
+    });
+  }, [applyCellFormat, toast]);
+
+  const handleFontSizeChange = useCallback((fontSize: string) => {
+    applyCellFormat({ fontSize });
+    toast({
+      title: "Font Size Changed", 
+      description: `Font size changed to ${fontSize}px`,
+    });
+  }, [applyCellFormat, toast]);
+
+  const handleBoldToggle = useCallback(() => {
+    const currentFormat = selectedCell ? cellFormats[getCellKey(selectedCell.row, selectedCell.col)] : null;
+    const isBold = currentFormat?.bold || false;
+    applyCellFormat({ bold: !isBold });
+    toast({
+      title: isBold ? "Bold Removed" : "Bold Applied",
+      description: `Text formatting ${isBold ? 'removed' : 'applied'}`,
+    });
+  }, [applyCellFormat, toast, selectedCell, cellFormats]);
+
+  const handleItalicToggle = useCallback(() => {
+    const currentFormat = selectedCell ? cellFormats[getCellKey(selectedCell.row, selectedCell.col)] : null;
+    const isItalic = currentFormat?.italic || false;
+    applyCellFormat({ italic: !isItalic });
+    toast({
+      title: isItalic ? "Italic Removed" : "Italic Applied",
+      description: `Text formatting ${isItalic ? 'removed' : 'applied'}`,
+    });
+  }, [applyCellFormat, toast, selectedCell, cellFormats]);
+
+  const handleUnderlineToggle = useCallback(() => {
+    const currentFormat = selectedCell ? cellFormats[getCellKey(selectedCell.row, selectedCell.col)] : null;
+    const isUnderline = currentFormat?.underline || false;
+    applyCellFormat({ underline: !isUnderline });
+    toast({
+      title: isUnderline ? "Underline Removed" : "Underline Applied",
+      description: `Text formatting ${isUnderline ? 'removed' : 'applied'}`,
+    });
+  }, [applyCellFormat, toast, selectedCell, cellFormats]);
+
+  const handleAlignmentChange = useCallback((textAlign: 'left' | 'center' | 'right') => {
+    applyCellFormat({ textAlign });
+    toast({
+      title: "Alignment Changed",
+      description: `Text aligned to ${textAlign}`,
+    });
+  }, [applyCellFormat, toast]);
+
+  const handleNumberFormatChange = useCallback((numberFormat: 'general' | 'percentage' | 'currency' | 'number') => {
+    applyCellFormat({ numberFormat });
+    toast({
+      title: "Number Format Changed",
+      description: `Format changed to ${numberFormat}`,
+    });
+  }, [applyCellFormat, toast]);
+
+  const handleTextColorChange = useCallback((textColor: string) => {
+    applyCellFormat({ textColor });
+    toast({
+      title: "Text Color Changed",
+      description: "Text color updated",
+    });
+  }, [applyCellFormat, toast]);
+
+  const handleBackgroundColorChange = useCallback((backgroundColor: string) => {
+    applyCellFormat({ backgroundColor });
+    toast({
+      title: "Background Color Changed", 
+      description: "Cell background updated",
+    });
+  }, [applyCellFormat, toast]);
+
   // Initialize keyboard shortcuts with all functionality
   useKeyboardShortcuts({
     selectedCell,
@@ -801,6 +920,18 @@ export const Spreadsheet = () => {
         onAddColumn={addColumn}
         selectedCell={selectedCell}
         onImageUpload={handleImageUpload}
+        onFontFamilyChange={handleFontFamilyChange}
+        onFontSizeChange={handleFontSizeChange}
+        onBoldToggle={handleBoldToggle}
+        onItalicToggle={handleItalicToggle}
+        onUnderlineToggle={handleUnderlineToggle}
+        onAlignmentChange={handleAlignmentChange}
+        onNumberFormatChange={handleNumberFormatChange}
+        onTextColorChange={handleTextColorChange}
+        onBackgroundColorChange={handleBackgroundColorChange}
+        onCopy={handleCopy}
+        onCut={handleCut}
+        onPaste={handlePaste}
       />
       
       {/* Formula Bar - Responsive sizing */}
@@ -841,6 +972,7 @@ export const Spreadsheet = () => {
             imageData={imageData}
             onDeleteSelectedCells={handleDeleteSelectedCells}
             onEditingValueChange={setCurrentEditingValue}
+            cellFormats={cellFormats}
           />
         </div>
       </SpreadsheetContextMenu>

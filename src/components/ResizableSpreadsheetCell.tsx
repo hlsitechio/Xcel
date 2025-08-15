@@ -17,6 +17,17 @@ interface ResizableSpreadsheetCellProps {
   onColumnResize: (colIndex: number, newWidth: number) => void;
   onRowResize: (rowIndex: number, newHeight: number) => void;
   onEditingValueChange?: (value: string) => void;
+  cellFormat?: {
+    fontFamily?: string;
+    fontSize?: string;
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    textAlign?: 'left' | 'center' | 'right';
+    backgroundColor?: string;
+    textColor?: string;
+    numberFormat?: 'general' | 'percentage' | 'currency' | 'number';
+  };
 }
 
 export const ResizableSpreadsheetCell = ({
@@ -35,6 +46,7 @@ export const ResizableSpreadsheetCell = ({
   onColumnResize,
   onRowResize,
   onEditingValueChange,
+  cellFormat,
 }: ResizableSpreadsheetCellProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -129,6 +141,45 @@ export const ResizableSpreadsheetCell = ({
     }
   };
 
+  // Format the display value based on number format
+  const formatDisplayValue = (value: string) => {
+    if (!cellFormat?.numberFormat || cellFormat.numberFormat === 'general') {
+      return value;
+    }
+    
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return value;
+    
+    switch (cellFormat.numberFormat) {
+      case 'percentage':
+        return `${(numValue * 100).toFixed(2)}%`;
+      case 'currency':
+        return `$${numValue.toFixed(2)}`;
+      case 'number':
+        return numValue.toLocaleString();
+      default:
+        return value;
+    }
+  };
+
+  // Generate inline styles from cellFormat
+  const getCellStyles = () => {
+    if (!cellFormat) return {};
+    
+    const styles: React.CSSProperties = {};
+    
+    if (cellFormat.fontFamily) styles.fontFamily = cellFormat.fontFamily;
+    if (cellFormat.fontSize) styles.fontSize = `${cellFormat.fontSize}px`;
+    if (cellFormat.bold) styles.fontWeight = 'bold';
+    if (cellFormat.italic) styles.fontStyle = 'italic';
+    if (cellFormat.underline) styles.textDecoration = 'underline';
+    if (cellFormat.textAlign) styles.textAlign = cellFormat.textAlign;
+    if (cellFormat.backgroundColor) styles.backgroundColor = cellFormat.backgroundColor;
+    if (cellFormat.textColor) styles.color = cellFormat.textColor;
+    
+    return styles;
+  };
+
   const handleCellMouseOver = () => {
     if (!isHeader && onCellMouseOver) {
       onCellMouseOver(rowIndex, colIndex);
@@ -202,7 +253,13 @@ export const ResizableSpreadsheetCell = ({
         "relative border-r border-b border-cell-border cursor-cell transition-colors flex items-center select-none",
         isSelected ? "bg-cell-selected ring-1 ring-primary" : "hover:bg-cell-hover"
       )}
-      style={{ width, height, minWidth: width, minHeight: height }}
+      style={{ 
+        width, 
+        height, 
+        minWidth: width, 
+        minHeight: height,
+        ...getCellStyles()
+      }}
       onClick={handleClick}
       onMouseDown={handleCellMouseDown}
       onMouseOver={handleCellMouseOver}
@@ -245,7 +302,7 @@ export const ResizableSpreadsheetCell = ({
             </>
           ) : (
             <div className="w-full h-full px-2 flex items-center text-sm text-foreground">
-              {value}
+              {formatDisplayValue(value)}
             </div>
           )}
         </div>

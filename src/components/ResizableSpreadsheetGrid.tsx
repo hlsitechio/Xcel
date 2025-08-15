@@ -21,6 +21,19 @@ interface ResizableSpreadsheetGridProps {
   imageData?: string[][];
   onDeleteSelectedCells: () => void;
   onEditingValueChange?: (value: string) => void;
+  cellFormats?: {
+    [key: string]: {
+      fontFamily?: string;
+      fontSize?: string;
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      textAlign?: 'left' | 'center' | 'right';
+      backgroundColor?: string;
+      textColor?: string;
+      numberFormat?: 'general' | 'percentage' | 'currency' | 'number';
+    }
+  };
 }
 
 export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpreadsheetGridProps>(({
@@ -38,6 +51,7 @@ export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpre
   imageData = [],
   onDeleteSelectedCells,
   onEditingValueChange,
+  cellFormats = {},
 }, ref) => {
   // Base state for dimensions (without zoom applied)
   const [baseColumnWidths, setBaseColumnWidths] = useState<number[]>(() => 
@@ -347,6 +361,7 @@ export const ResizableSpreadsheetGrid = forwardRef<HTMLDivElement, ResizableSpre
                     onColumnResize={handleColumnResize}
                     onRowResize={handleRowResize}
                     onEditingValueChange={onEditingValueChange}
+                    cellFormat={cellFormats[`${rowIndex}-${colIndex}`]}
                   />
                 );
               })}

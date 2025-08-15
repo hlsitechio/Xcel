@@ -2,24 +2,42 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bold, Italic, Underline, Type, PaintBucket } from "lucide-react";
 
-export const FontControls = () => {
+interface FontControlsProps {
+  onFontFamilyChange: (fontFamily: string) => void;
+  onFontSizeChange: (fontSize: string) => void;
+  onBoldToggle: () => void;
+  onItalicToggle: () => void;
+  onUnderlineToggle: () => void;
+  onTextColorChange: (color: string) => void;
+  onBackgroundColorChange: (color: string) => void;
+}
+
+export const FontControls = ({
+  onFontFamilyChange,
+  onFontSizeChange,
+  onBoldToggle,
+  onItalicToggle,
+  onUnderlineToggle,
+  onTextColorChange,
+  onBackgroundColorChange
+}: FontControlsProps) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="text-xs text-muted-foreground font-medium text-center">Font</div>
       <div className="flex items-center gap-2">
-        <Select defaultValue="arial">
+        <Select defaultValue="arial" onValueChange={onFontFamilyChange}>
           <SelectTrigger className="w-32 h-8">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="arial">Arial</SelectItem>
-            <SelectItem value="helvetica">Helvetica</SelectItem>
-            <SelectItem value="times">Times New Roman</SelectItem>
-            <SelectItem value="courier">Courier New</SelectItem>
+            <SelectItem value="Arial">Arial</SelectItem>
+            <SelectItem value="Helvetica">Helvetica</SelectItem>
+            <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+            <SelectItem value="Courier New">Courier New</SelectItem>
           </SelectContent>
         </Select>
         
-        <Select defaultValue="11">
+        <Select defaultValue="11" onValueChange={onFontSizeChange}>
           <SelectTrigger className="w-16 h-8">
             <SelectValue />
           </SelectTrigger>
@@ -37,22 +55,22 @@ export const FontControls = () => {
         </Select>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={onBoldToggle}>
             <Bold className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={onItalicToggle}>
             <Italic className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={onUnderlineToggle}>
             <Underline className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={() => onTextColorChange('#000000')}>
             <Type className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={() => onBackgroundColorChange('#ffff00')}>
             <PaintBucket className="h-4 w-4" />
           </Button>
         </div>
